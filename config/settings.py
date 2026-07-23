@@ -26,10 +26,12 @@ SECRET_KEY = os.getenv(
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes", "on")
 
 hosts_env = os.getenv("ALLOWED_HOSTS", "").strip()
+
 if hosts_env:
     ALLOWED_HOSTS = [host.strip() for host in hosts_env.split(",")]
 else:
     ALLOWED_HOSTS = [
+        "aitravelagent-6jc6.onrender.com",
         "127.0.0.1",
         "localhost",
         "[::1]",
@@ -39,6 +41,7 @@ else:
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "https://aitravelagent-6jc6.onrender.com",
 ]
 
 # --------------------------------------------------
@@ -176,6 +179,11 @@ AUTH_USER_MODEL = "users.CustomUser"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"
+
+
+
+
+
 
 # --------------------------------------------------
 # API Keys
