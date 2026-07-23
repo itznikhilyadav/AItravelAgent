@@ -3,10 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from groq import Groq
 import json
+from django.conf import settings
+import os
 
-GROQ_API_KEY = 'REMOVED_SECRET'
 
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=settings.GROQ_API_KEY)
+
 
 
 def get_flights_from_ai(origin, destination, date, passengers, travel_class):

@@ -1,7 +1,10 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from groq import Groq
+from django.conf import settings
 
+client = Groq(api_key=settings.GROQ_API_KEY)
 # --------------------------------------------------
 # Base Directory
 # --------------------------------------------------

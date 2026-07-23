@@ -4,9 +4,12 @@ from django.http import JsonResponse
 from groq import Groq
 from .models import Itinerary
 import json
+import os
+from django.conf import settings
 
-GROQ_API_KEY = 'REMOVED_SECRET'
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=settings.GROQ_API_KEY)
+
+
 
 
 def generate_itinerary_ai(destination, start_date, duration, travellers, budget, style, interests):

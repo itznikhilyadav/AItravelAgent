@@ -1,10 +1,16 @@
 import json
 import logging
 from groq import Groq
+from django.conf import settings
+
+import os
+
+
+client = Groq(api_key=settings.GROQ_API_KEY)
 
 logger = logging.getLogger(__name__)
 
-GROQ_API_KEY = 'REMOVED_SECRET'
+
 
 
 def get_recommendations(trip_type, climate, budget, duration, activities):
@@ -13,7 +19,7 @@ def get_recommendations(trip_type, climate, budget, duration, activities):
     print(f"DEBUG - Activities: {activities}")
 
     try:
-        client = Groq(api_key=GROQ_API_KEY)
+        client = Groq(api_key=settings.GROQ_API_KEY)
         activities_str = ', '.join(activities) if activities else 'general sightseeing'
 
         prompt = f"""You are a travel recommendation expert. Based on these preferences, recommend exactly 6 destinations.
