@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ai-travel-agent
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DEBUG
+        value: False

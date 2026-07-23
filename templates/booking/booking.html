@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}Flight & Hotel Search — TravelAI{% endblock %}
+{% block content %}
+<div class="booking-page">
+  <div class="booking-hero">
+    <h1>✈️ Flight & Hotel Search</h1>
+    <p>Powered by Groq AI · Free · No API key needed</p>
+  </div>
+
+  <div class="booking-tabs">
+    <button class="btab active" onclick="switchTab('flights', this)">✈️ Flights</button>
+    <button class="btab" onclick="switchTab('hotels', this)">🏨 Hotels</button>
+  </div>
+
+  <!-- Flights -->
+  <div id="flights-panel" class="search-card">
+    <div class="search-grid">
+      <div class="sfield">
+        <label>From</label>
+        <input type="text" id="f-origin" placeholder="Delhi, Mumbai, London…"/>
+      </div>
+      <div class="sfield">
+        <label>To</label>
+        <input type="text" id="f-dest" placeholder="Paris, Tokyo, New York…"/>
+      </div>
+      <div class="sfield">
+        <label>Date</label>
+        <input type="date" id="f-date"/>
+      </div>
+      <div class="sfield">
+        <label>Passengers</label>
+        <select id="f-passengers">
+          <option>1 Adult</option>
+          <option>2 Adults</option>
+          <option>3 Adults</option>
+          <option>2 Adults, 1 Child</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <label>Class</label>
+        <select id="f-class">
+          <option>Economy</option>
+          <option>Business</option>
+          <option>First Class</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <label>Trip type</label>
+        <select id="f-type">
+          <option>One way</option>
+          <option>Round trip</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-search" onclick="searchFlights()">✦ Search flights with AI</button>
+    <div id="flight-results"></div>
+  </div>
+
+  <!-- Hotels -->
+  <div id="hotels-panel" class="search-card" style="display:none">
+    <div class="search-grid">
+      <div class="sfield">
+        <label>City</label>
+        <input type="text" id="h-city" placeholder="Paris, Bali, Dubai…"/>
+      </div>
+      <div class="sfield">
+        <label>Check in</label>
+        <input type="date" id="h-checkin"/>
+      </div>
+      <div class="sfield">
+        <label>Check out</label>
+        <input type="date" id="h-checkout"/>
+      </div>
+      <div class="sfield">
+        <label>Guests</label>
+        <select id="h-guests">
+          <option>1 Guest</option>
+          <option>2 Guests</option>
+          <option>2 Guests, 1 Child</option>
+          <option>4 Guests</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <label>Budget per night</label>
+        <select id="h-budget">
+          <option>Any budget</option>
+          <option>Under $50</option>
+          <option>$50 - $100</option>
+          <option>$100 - $200</option>
+          <option>$200 - $500</option>
+          <option>$500+</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <label>Star rating</label>
+        <select id="h-stars">
+          <option>Any rating</option>
+          <option>3+ stars</option>
+          <option>4+ stars</option>
+          <option>5 stars only</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-search" onclick="searchHotels()">✦ Search hotels with AI</button>
+    <div id="hotel-results"></div>
+  </div>
+</div>
+
+<style>
+@keyframes bgShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.96)}100%{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.booking-page{min-height:calc(100vh - 64px);padding:2rem;position:relative}
+.booking-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-1}
+
+.booking-hero{text-align:center;margin-bottom:1.5rem;animation:slideUp 0.5s ease}
+.booking-hero h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:5px}
+.booking-hero p{font-size:13px;color:rgba(255,255,255,0.4)}
+
+.booking-tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:12px;padding:4px;margin-bottom:1.25rem;gap:4px;max-width:380px;margin-left:auto;margin-right:auto}
+.btab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,0.4);border:none;background:transparent;border-radius:9px;cursor:pointer;transition:all 0.2s}
+.btab.active{background:rgba(139,92,246,0.25);color:#c4b5fd;border:1px solid rgba(139,92,246,0.4)}
+
+.search-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,0.2);border-radius:20px;padding:1.5rem;margin-bottom:1.25rem;max-width:860px;margin-left:auto;margin-right:auto;animation:slideUp 0.5s ease}
+.search-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.sfield label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.8px;text-transform:uppercase;display:block;margin-bottom:6px}
+.sfield input,.sfield select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:9px;color:#fff;font-size:13px;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border 0.2s}
+.sfield input:focus,.sfield select:focus{border-color:rgba(139,92,246,0.6)}
+.sfield input::placeholder{color:rgba(255,255,255,0.28)}
+
+.btn-search{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;position:relative;overflow:hidden}
+.btn-search:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,0.4)}
+.btn-search::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);animation:shimmer 2s infinite}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:2.5rem;color:rgba(255,255,255,0.5);font-size:13px;margin-top:1rem}
+.ld{width:9px;height:9px;border-radius:50%;animation:pulse 1.2s infinite}
+
+/* Flight results */
+.flights-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1.25rem}
+.flight-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:14px;padding:14px;transition:all 0.25s;animation:popIn 0.4s ease both}
+.flight-card:hover{border-color:rgba(139,92,246,0.45);transform:translateY(-2px);box-shadow:0 8px 24px rgba(139,92,246,0.15)}
+.flight-card.best{border-color:rgba(139,92,246,0.5);background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(6,182,212,0.06))}
+.fc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.airline-name{font-size:13px;font-weight:700;color:#fff}
+.flight-no{font-size:10px;color:rgba(255,255,255,0.38);margin-top:2px}
+.price{font-size:22px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.price-label{font-size:10px;color:rgba(255,255,255,0.3);text-align:right}
+.route{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.city{text-align:center}
+.city-code{font-size:16px;font-weight:800;color:#fff}
+.city-time{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px}
+.route-line{flex:1;display:flex;align-items:center;gap:3px}
+.rl{flex:1;height:1px;background:rgba(139,92,246,0.3)}
+.duration{font-size:10px;color:rgba(139,92,246,0.85);text-align:center;margin-bottom:6px}
+.flight-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.ftag{font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:rgba(255,255,255,0.55)}
+.ftag.green{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7}
+.fc-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
+.seats-left{font-size:11px;color:rgba(255,165,0,0.8);font-weight:600}
+.btn-book{padding:7px 16px;border-radius:20px;border:none;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:transform 0.15s}
+.btn-book:hover{transform:scale(1.05)}
+.best-badge{position:absolute;top:-1px;right:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:9px;font-weight:800;padding:3px 10px;border-radius:0 0 10px 10px;letter-spacing:0.5px}
+
+/* Hotel results */
+.hotels-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:1.25rem}
+.hotel-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:14px;overflow:hidden;transition:all 0.25s;animation:popIn 0.4s ease both}
+.hotel-card:hover{border-color:rgba(139,92,246,0.45);transform:translateY(-2px)}
+.hotel-hero{height:70px;background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.15));display:flex;align-items:center;justify-content:center;font-size:30px;position:relative}
+.stars-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.5);color:#f59e0b;font-size:10px;font-weight:700;padding:3px 7px;border-radius:8px}
+.hotel-body{padding:12px}
+.hotel-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:3px}
+.hotel-area{font-size:11px;color:rgba(255,255,255,0.38);margin-bottom:6px}
+.hotel-rating{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.rating-score{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px}
+.rating-text{font-size:10px;color:rgba(255,255,255,0.35)}
+.hotel-amenities{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.amenity{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.18);color:rgba(6,182,212,0.8)}
+.hotel-highlights{font-size:11px;color:rgba(255,255,255,0.42);margin-bottom:8px;line-height:1.45}
+.hotel-footer{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)}
+.hotel-price{font-size:14px;font-weight:700;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hotel-total{font-size:10px;color:rgba(255,255,255,0.3)}
+.btn-hotel-book{padding:6px 12px;border-radius:16px;border:none;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:transform 0.15s;text-decoration:none;display:inline-block}
+.btn-hotel-book:hover{transform:scale(1.04)}
+.no-results{text-align:center;padding:2rem;color:rgba(255,255,255,0.35);font-size:13px;margin-top:1rem}
+.error-msg{text-align:center;padding:1.5rem;color:#fca5a5;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:12px;font-size:13px;margin-top:1rem}
+</style>
+
+{% block extra_js %}
+<script>
+function switchTab(tab, btn){
+  document.querySelectorAll('.btab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('flights-panel').style.display = tab==='flights' ? 'block' : 'none';
+  document.getElementById('hotels-panel').style.display = tab==='hotels' ? 'block' : 'none';
+}
+
+function getCookie(name){
+  const v = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+function loadingHTML(msg){
+  return `<div class="loading">
+    <div class="ld" style="background:#8b5cf6"></div>
+    <div class="ld" style="background:#06b6d4;animation-delay:0.2s"></div>
+    <div class="ld" style="background:#f9a8d4;animation-delay:0.4s"></div>
+    <span>${msg}</span>
+  </div>`;
+}
+
+function hotelEmoji(stars){
+  const emojis=['🏠','🏨','🏩','🏰','🌟','✨'];
+  return emojis[Math.min(stars,5)] || '🏨';
+}
+
+async function searchFlights(){
+  const origin = document.getElementById('f-origin').value.trim();
+  const dest = document.getElementById('f-dest').value.trim();
+  const date = document.getElementById('f-date').value;
+  const passengers = document.getElementById('f-passengers').value;
+  const tClass = document.getElementById('f-class').value;
+  const el = document.getElementById('flight-results');
+
+  if(!origin || !dest || !date){
+    el.innerHTML = '<div class="error-msg">Please fill in From, To and Date fields.</div>';
+    return;
+  }
+
+  el.innerHTML = loadingHTML(`Groq AI is searching flights from ${origin} to ${dest}…`);
+
+  try {
+    const res = await fetch("{% url 'booking:flight_search' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({origin, destination: dest, date, passengers, travel_class: tClass})
+    });
+    const data = await res.json();
+
+    if(data.error){
+      el.innerHTML = `<div class="error-msg">⚠️ ${data.error}</div>`;
+      return;
+    }
+    if(!data.flights || data.flights.length === 0){
+      el.innerHTML = '<div class="no-results">No flights found. Try different cities or dates.</div>';
+      return;
+    }
+
+    el.innerHTML = '<div class="flights-grid">' +
+      data.flights.map((f, i) => `
+        <div class="flight-card ${i===0?'best':''}" style="position:relative;animation-delay:${i*80}ms">
+          ${i===0 ? '<div class="best-badge">⭐ Best option</div>' : ''}
+          <div class="fc-top">
+            <div>
+              <div class="airline-name">✈️ ${f.airline}</div>
+              <div class="flight-no">${f.flight_no} · ${f.class || tClass}</div>
+            </div>
+            <div>
+              <div class="price">${f.price}</div>
+              <div class="price-label">per person</div>
+            </div>
+          </div>
+          <div class="route">
+            <div class="city">
+              <div class="city-code">${origin.substring(0,3).toUpperCase()}</div>
+              <div class="city-time">${f.departure_time}</div>
+            </div>
+            <div class="route-line"><div class="rl"></div>✈️<div class="rl"></div></div>
+            <div class="city">
+              <div class="city-code">${dest.substring(0,3).toUpperCase()}</div>
+              <div class="city-time">${f.arrival_time}</div>
+            </div>
+          </div>
+          <div class="duration">${f.duration} · ${f.stops}</div>
+          <div class="flight-tags">
+            <span class="ftag ${f.stops==='Non-stop'?'green':''}">${f.stops}</span>
+            ${(f.features||[]).slice(0,2).map(feat=>`<span class="ftag">${feat}</span>`).join('')}
+            <span class="ftag">${f.seats_left} seats left</span>
+          </div>
+          <div class="fc-footer">
+            <div class="seats-left">🔥 Only ${f.seats_left} seats left</div>
+            <button class="btn-book">Book now →</button>
+          </div>
+        </div>`).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="error-msg">⚠️ Search failed: ${e.message}</div>`;
+  }
+}
+
+async function searchHotels(){
+  const city = document.getElementById('h-city').value.trim();
+  const checkIn = document.getElementById('h-checkin').value;
+  const checkOut = document.getElementById('h-checkout').value;
+  const guests = document.getElementById('h-guests').value;
+  const budget = document.getElementById('h-budget').value;
+  const el = document.getElementById('hotel-results');
+
+  if(!city || !checkIn || !checkOut){
+    el.innerHTML = '<div class="error-msg">Please fill in City, Check-in and Check-out fields.</div>';
+    return;
+  }
+
+  el.innerHTML = loadingHTML(`Groq AI is searching hotels in ${city}…`);
+
+  try {
+    const res = await fetch("{% url 'booking:hotel_search' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({city, check_in: checkIn, check_out: checkOut, guests, budget})
+    });
+    const data = await res.json();
+
+    if(data.error){
+      el.innerHTML = `<div class="error-msg">⚠️ ${data.error}</div>`;
+      return;
+    }
+    if(!data.hotels || data.hotels.length === 0){
+      el.innerHTML = '<div class="no-results">No hotels found. Try a different city.</div>';
+      return;
+    }
+
+    el.innerHTML = '<div class="hotels-grid">' +
+      data.hotels.map((h, i) => `
+        <div class="hotel-card" style="animation-delay:${i*80}ms">
+          <div class="hotel-hero">
+            ${hotelEmoji(h.stars)}
+            <div class="stars-badge">${'★'.repeat(h.stars||3)}</div>
+          </div>
+          <div class="hotel-body">
+            <div class="hotel-name">${h.name}</div>
+            <div class="hotel-area">📍 ${h.area || h.address || city}</div>
+            <div class="hotel-rating">
+              <span class="rating-score">${h.rating||'8.0'}</span>
+              <span class="rating-text">${h.reviews ? h.reviews+' reviews' : 'Great'}</span>
+            </div>
+            <div class="hotel-amenities">
+              ${(h.amenities||[]).slice(0,4).map(a=>`<span class="amenity">${a}</span>`).join('')}
+            </div>
+            <div class="hotel-highlights">${h.highlights||''}</div>
+            <div class="hotel-footer">
+              <div>
+                <div class="hotel-price">${h.price_per_night}</div>
+                <div class="hotel-total">${h.total_price||''} total</div>
+              </div>
+              <a href="${h.map_url||'https://maps.google.com/?q='+encodeURIComponent(h.name+' '+city)}"
+                 target="_blank" class="btn-hotel-book">📍 View →</a>
+            </div>
+          </div>
+        </div>`).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<div class="error-msg">⚠️ Search failed: ${e.message}</div>`;
+  }
+}
+
+const today = new Date();
+const next7 = new Date(today.getTime() + 7*86400000);
+const next10 = new Date(today.getTime() + 10*86400000);
+document.getElementById('f-date').valueAsDate = next7;
+document.getElementById('h-checkin').valueAsDate = next7;
+document.getElementById('h-checkout').valueAsDate = next10;
+</script>
+{% endblock %}
+{% endblock %}

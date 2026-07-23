@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}{{ itinerary.destination }} Itinerary — TravelAI{% endblock %}
+{% block content %}
+<div class="detail-page">
+
+  {% with data=itinerary.itinerary_data %}
+  <div class="trip-banner">
+    <div>
+      <h1>🗺️ {{ data.trip_title|default:itinerary.destination }}</h1>
+      <div class="trip-pills">
+        <span class="pill">👥 {{ itinerary.travellers }}</span>
+        <span class="pill">💰 {{ itinerary.budget }}</span>
+        <span class="pill">📅 {{ itinerary.duration_days }} days</span>
+        <span class="pill">✈️ {{ itinerary.travel_style }}</span>
+        {% for interest in itinerary.interests %}
+          <span class="pill">{{ interest }}</span>
+        {% endfor %}
+      </div>
+      {% if data.summary %}
+        <p class="trip-summary">{{ data.summary }}</p>
+      {% endif %}
+    </div>
+    <div class="banner-actions">
+      <button onclick="window.print()" class="btn-act">🖨️ Print</button>
+      <a href="{% url 'itinerary:home' %}" class="btn-act">← My trips</a>
+      <a href="{% url 'itinerary:delete' itinerary.pk %}"
+         class="btn-act danger"
+         onclick="return confirm('Delete this itinerary?')">🗑️ Delete</a>
+    </div>
+  </div>
+
+  <!-- Budget breakdown -->
+  {% if data.budget_breakdown %}
+  <div class="budget-card">
+    <div class="budget-label">💰 Estimated budget breakdown</div>
+    <div class="budget-grid">
+      {% for key, val in data.budget_breakdown.items %}
+        <div class="b-item">
+          <div class="b-key">{{ key|title }}</div>
+          <div class="b-val">{{ val }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Day tabs -->
+  <div class="day-tabs" id="day-tabs">
+    {% for day in data.days %}
+      <button class="dtab {% if forloop.first %}active{% endif %}"
+              onclick="showDay({{ forloop.counter0 }}, this)">
+        Day {{ day.day }}
+      </button>
+    {% endfor %}
+  </div>
+
+  <!-- Day content -->
+  {% for day in data.days %}
+  <div class="day-panel {% if forloop.first %}active{% endif %}" id="day-{{ forloop.counter0 }}">
+    <div class="day-header">
+      <h2>Day {{ day.day }} — {{ day.title }}</h2>
+      {% if day.theme %}<p>{{ day.theme }}</p>{% endif %}
+    </div>
+    <div class="timeline">
+      {% for act in day.activities %}
+      <div class="t-item">
+        <div class="t-dot {{ act.category }}"></div>
+        <div class="t-card">
+          <div class="t-row">
+            <div class="t-time">{{ act.time }}</div>
+            {% if act.cost %}<div class="t-cost">{{ act.cost }}</div>{% endif %}
+          </div>
+          <div class="t-title">{{ act.title }}</div>
+          <div class="t-desc">{{ act.description }}</div>
+          <div class="t-footer">
+            <div class="t-tags">
+              {% if act.category %}<span class="ttag {{ act.category }}">{{ act.category }}</span>{% endif %}
+              {% if act.duration %}<span class="ttag">⏱ {{ act.duration }}</span>{% endif %}
+              {% for tag in act.tags %}<span class="ttag">{{ tag }}</span>{% endfor %}
+            </div>
+            {% if act.map_url %}
+              <a href="{{ act.map_url }}" target="_blank" class="map-link">📍 Map</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Tips -->
+  {% if data.tips %}
+  <div class="tips-card">
+    <h3>💡 Travel tips for {{ itinerary.destination }}</h3>
+    <ul>
+      {% for tip in data.tips %}
+        <li>{{ tip }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% endwith %}
+</div>
+
+<style>
+@keyframes bgShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.97)}100%{opacity:1;transform:scale(1)}}
+
+.detail-page{min-height:calc(100vh - 64px);padding:2rem;position:relative}
+.detail-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-1}
+
+.trip-banner{background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(6,182,212,0.08));border:1px solid rgba(139,92,246,0.3);border-radius:18px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;animation:slideUp 0.5s ease;max-width:1000px;margin-left:auto;margin-right:auto}
+.trip-banner h1{font-size:22px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.trip-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);color:#c4b5fd}
+.trip-summary{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.5}
+.banner-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.btn-act{padding:8px 16px;border-radius:10px;border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);color:#c4b5fd;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:block;text-align:center;transition:all 0.2s;white-space:nowrap}
+.btn-act:hover{background:rgba(139,92,246,0.25);color:#fff}
+.btn-act.danger{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#fca5a5}
+.btn-act.danger:hover{background:rgba(239,68,68,0.2)}
+
+.budget-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:14px;padding:14px 16px;margin-bottom:1.25rem;max-width:1000px;margin-left:auto;margin-right:auto}
+.budget-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px}
+.budget-grid{display:flex;gap:10px;flex-wrap:wrap}
+.b-item{background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.14);border-radius:10px;padding:10px 16px;min-width:100px;text-align:center}
+.b-key{font-size:10px;color:rgba(255,255,255,0.35);text-transform:capitalize;margin-bottom:4px}
+.b-val{font-size:16px;font-weight:700;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.day-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;max-width:1000px;margin-left:auto;margin-right:auto}
+.dtab{padding:8px 18px;border-radius:20px;border:1px solid rgba(139,92,246,0.2);background:rgba(139,92,246,0.06);color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.dtab.active{background:rgba(139,92,246,0.25);border-color:rgba(139,92,246,0.5);color:#c4b5fd}
+.day-panel{display:none;max-width:1000px;margin:0 auto;animation:slideUp 0.3s ease}
+.day-panel.active{display:block}
+.day-header{margin-bottom:1rem}
+.day-header h2{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.day-header p{font-size:13px;color:rgba(255,255,255,0.42)}
+
+.timeline{position:relative;padding-left:36px}
+.timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:1px;background:rgba(139,92,246,0.2)}
+.t-item{position:relative;margin-bottom:12px;animation:popIn 0.4s ease both}
+.t-dot{position:absolute;left:-28px;top:14px;width:13px;height:13px;border-radius:50%;border:2px solid rgba(139,92,246,0.5);background:#0d1a3a}
+.t-dot.hotel{background:#10b981;border-color:#10b981}
+.t-dot.food{background:#f97316;border-color:#f97316}
+.t-dot.transport{background:#06b6d4;border-color:#06b6d4}
+.t-dot.sightseeing,.t-dot.culture{background:#8b5cf6;border-color:#8b5cf6}
+.t-dot.adventure,.t-dot.nature{background:#22c55e;border-color:#22c55e}
+.t-dot.shopping{background:#ec4899;border-color:#ec4899}
+.t-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:12px;padding:12px 14px;transition:all 0.2s}
+.t-card:hover{border-color:rgba(139,92,246,0.38);background:rgba(139,92,246,0.07)}
+.t-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.t-time{font-size:10px;color:rgba(139,92,246,0.85);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.t-cost{font-size:11px;color:rgba(6,182,212,0.85);font-weight:600}
+.t-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.t-desc{font-size:12px;color:rgba(255,255,255,0.48);line-height:1.55;margin-bottom:8px}
+.t-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.t-tags{display:flex;gap:4px;flex-wrap:wrap}
+.ttag{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.18);color:rgba(255,255,255,0.5);text-transform:capitalize}
+.ttag.food{background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.2);color:rgba(249,115,22,0.85)}
+.ttag.transport{background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.2);color:rgba(6,182,212,0.85)}
+.ttag.hotel{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2);color:rgba(16,185,129,0.85)}
+.ttag.adventure,.ttag.nature{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2);color:rgba(34,197,94,0.85)}
+.map-link{font-size:11px;color:#06b6d4;text-decoration:none;font-weight:600;transition:color 0.2s}
+.map-link:hover{color:#67e8f9}
+
+.tips-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:14px;padding:16px;margin-top:1.25rem;max-width:1000px;margin-left:auto;margin-right:auto}
+.tips-card h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:10px}
+.tips-card ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.tips-card li{font-size:12px;color:rgba(255,255,255,0.5);padding-left:16px;position:relative;line-height:1.5}
+.tips-card li::before{content:'→';position:absolute;left:0;color:#8b5cf6}
+</style>
+
+{% block extra_js %}
+<script>
+function showDay(idx, btn){
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.day-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('day-'+idx).classList.add('active');
+}
+</script>
+{% endblock %}
+{% endblock %}

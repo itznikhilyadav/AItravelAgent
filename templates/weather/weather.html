@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}Weather & Maps — TravelAI{% endblock %}
+{% block content %}
+<div class="weather-page">
+
+  <!-- Search bar -->
+  <div class="w-search-wrap">
+    <h1>🌤️ Weather & Maps</h1>
+    <p>Live weather and interactive maps for any destination</p>
+    <form method="get" class="w-search-form">
+      <input type="text" name="city" value="{{ city }}"
+             placeholder="Search any city — Paris, Manali, Dubai…" required/>
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  {% if weather.success %}
+  <div class="w-grid">
+
+    <!-- LEFT: Weather -->
+    <div class="w-col">
+
+      <!-- Main weather card -->
+      <div class="w-main-card">
+        <div class="w-main-top">
+          <div>
+            <div class="w-city">{{ weather.city }}, {{ weather.country }}</div>
+            <div class="w-desc">{{ weather.description }}</div>
+          </div>
+          <img src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png"
+               alt="{{ weather.description }}" class="w-icon"/>
+        </div>
+        <div class="w-temp">{{ weather.temp }}°C</div>
+        <div class="w-feels">Feels like {{ weather.feels_like }}°C</div>
+        <div class="w-range">{{ weather.temp_min }}° / {{ weather.temp_max }}°</div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="w-stats">
+        <div class="w-stat">
+          <div class="ws-icon">💧</div>
+          <div class="ws-val">{{ weather.humidity }}%</div>
+          <div class="ws-label">Humidity</div>
+        </div>
+        <div class="w-stat">
+          <div class="ws-icon">💨</div>
+          <div class="ws-val">{{ weather.wind_speed }} km/h</div>
+          <div class="ws-label">Wind</div>
+        </div>
+        <div class="w-stat">
+          <div class="ws-icon">👁️</div>
+          <div class="ws-val">{{ weather.visibility }} km</div>
+          <div class="ws-label">Visibility</div>
+        </div>
+        <div class="w-stat">
+          <div class="ws-icon">🌡️</div>
+          <div class="ws-val">{{ weather.pressure }} hPa</div>
+          <div class="ws-label">Pressure</div>
+        </div>
+      </div>
+
+      <!-- Forecast -->
+      {% if forecast.success %}
+      <div class="w-forecast-card">
+        <div class="wf-title">Next 15 hours</div>
+        <div class="wf-grid">
+          {% for f in forecast.forecasts %}
+          <div class="wf-item">
+            <div class="wf-time">{{ f.time|slice:"11:16" }}</div>
+            <img src="https://openweathermap.org/img/wn/{{ f.icon }}.png"
+                 alt="{{ f.description }}" class="wf-icon"/>
+            <div class="wf-temp">{{ f.temp }}°</div>
+            <div class="wf-desc">{{ f.description }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Travel tips -->
+      <div class="w-tips-card">
+        <div class="wt-title">✈️ Travel tips for {{ weather.city }}</div>
+        <div class="wt-tips">
+          {% if weather.temp >= 30 %}
+            <div class="wt-tip">🌡️ Very hot — wear light clothes, stay hydrated</div>
+            <div class="wt-tip">🧴 Apply sunscreen SPF 50+</div>
+            <div class="wt-tip">🕛 Avoid outdoor activities 12pm–3pm</div>
+          {% elif weather.temp >= 20 %}
+            <div class="wt-tip">😊 Pleasant weather — great for sightseeing</div>
+            <div class="wt-tip">👕 Light to medium clothing recommended</div>
+            <div class="wt-tip">🌅 Perfect for outdoor activities all day</div>
+          {% elif weather.temp >= 10 %}
+            <div class="wt-tip">🧥 Cool weather — carry a jacket</div>
+            <div class="wt-tip">☕ Great for walking tours and cafes</div>
+            <div class="wt-tip">🌤️ Good visibility for photography</div>
+          {% else %}
+            <div class="wt-tip">❄️ Cold weather — pack warm clothes</div>
+            <div class="wt-tip">🧣 Layer up with sweater and coat</div>
+            <div class="wt-tip">🔥 Look for cozy indoor experiences</div>
+          {% endif %}
+          {% if weather.humidity > 80 %}
+            <div class="wt-tip">💧 High humidity — expect it to feel hotter</div>
+          {% endif %}
+          {% if weather.wind_speed > 30 %}
+            <div class="wt-tip">💨 Strong winds — secure loose items</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick city buttons -->
+      <div class="w-quick">
+        <div class="wq-label">Popular destinations</div>
+        <div class="wq-cities">
+{% for c in city_list %}
+            <a href="?city={{ c }}" class="wq-city {% if c == city %}active{% endif %}">{{ c }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Map -->
+    <div class="w-col">
+      <div class="w-map-card">
+        <div class="wm-header">
+          <div class="wm-title">📍 {{ weather.city }} on the map</div>
+          <a href="https://maps.google.com/?q={{ weather.lat }},{{ weather.lon }}"
+             target="_blank" class="wm-open">Open in Google Maps ↗</a>
+        </div>
+        <div class="wm-frame">
+          <iframe
+            src="https://maps.google.com/maps?q={{ weather.lat }},{{ weather.lon }}&z=13&output=embed"
+            width="100%"
+            height="100%"
+            style="border:none"
+            allowfullscreen
+            loading="lazy"
+            title="{{ weather.city }} map">
+          </iframe>
+        </div>
+        <div class="wm-coords">
+          📍 {{ weather.lat }}°N, {{ weather.lon }}°E
+        </div>
+      </div>
+
+      <!-- Nearby places -->
+      <div class="w-nearby-card">
+        <div class="wn-title">🔍 Explore {{ weather.city }}</div>
+        <div class="wn-links">
+          <a href="https://maps.google.com/?q=hotels+in+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            🏨 Hotels nearby
+          </a>
+          <a href="https://maps.google.com/?q=restaurants+in+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            🍜 Restaurants
+          </a>
+          <a href="https://maps.google.com/?q=tourist+places+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            🏛️ Tourist spots
+          </a>
+          <a href="https://maps.google.com/?q=airports+near+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            ✈️ Airports
+          </a>
+          <a href="https://maps.google.com/?q=shopping+in+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            🛍️ Shopping
+          </a>
+          <a href="https://maps.google.com/?q=hospitals+in+{{ weather.city }}"
+             target="_blank" class="wn-link">
+            🏥 Hospitals
+          </a>
+        </div>
+      </div>
+
+      <!-- Plan trip from here -->
+      <div class="w-plan-card">
+        <div class="wp-title">Plan a trip to {{ weather.city }}</div>
+        <div class="wp-sub">Use our AI to plan a complete itinerary</div>
+        <div class="wp-actions">
+          <a href="/chat/?q=Plan+a+trip+to+{{ weather.city }}" class="wp-btn primary">
+            🤖 Ask AI to plan
+          </a>
+          <a href="/itinerary/create/" class="wp-btn">
+            🗺️ Build itinerary
+          </a>
+          <a href="/booking/" class="wp-btn">
+            ✈️ Search flights
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {% else %}
+  <div class="w-error">
+    <div style="font-size:48px;margin-bottom:12px">🌍</div>
+    <h3>City not found</h3>
+    <p>Try searching for a different city name</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+@keyframes bgShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.96)}100%{opacity:1;transform:scale(1)}}
+
+.weather-page{min-height:calc(100vh - 64px);padding:2rem;position:relative}
+.weather-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-1}
+
+.w-search-wrap{text-align:center;margin-bottom:1.75rem;animation:slideUp 0.5s ease}
+.w-search-wrap h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.w-search-wrap p{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:1.25rem}
+.w-search-form{display:flex;gap:8px;max-width:560px;margin:0 auto}
+.w-search-form input{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:12px;color:#fff;font-size:14px;padding:12px 16px;outline:none;transition:border 0.2s}
+.w-search-form input:focus{border-color:rgba(139,92,246,0.6)}
+.w-search-form input::placeholder{color:rgba(255,255,255,0.28)}
+.w-search-form button{padding:12px 24px;border:none;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:transform 0.15s;white-space:nowrap}
+.w-search-form button:hover{transform:translateY(-1px)}
+
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1100px;margin:0 auto}
+.w-col{display:flex;flex-direction:column;gap:14px}
+
+.w-main-card{background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.12));border:1px solid rgba(139,92,246,0.35);border-radius:18px;padding:1.5rem;animation:popIn 0.4s ease}
+.w-main-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.w-city{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px}
+.w-desc{font-size:13px;color:rgba(255,255,255,0.55)}
+.w-icon{width:64px;height:64px}
+.w-temp{font-size:56px;font-weight:800;background:linear-gradient(135deg,#fde68a,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:4px}
+.w-feels{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:2px}
+.w-range{font-size:13px;color:rgba(255,255,255,0.4)}
+
+.w-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;animation:popIn 0.45s ease}
+.w-stat{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:12px;padding:12px;text-align:center}
+.ws-icon{font-size:20px;margin-bottom:5px}
+.ws-val{font-size:16px;font-weight:700;color:#fff;margin-bottom:2px}
+.ws-label{font-size:11px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px}
+
+.w-forecast-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:14px;padding:14px;animation:popIn 0.5s ease}
+.wf-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px}
+.wf-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.wf-item{text-align:center;background:rgba(139,92,246,0.06);border-radius:10px;padding:8px 4px}
+.wf-time{font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:3px}
+.wf-icon{width:32px;height:32px;margin:0 auto}
+.wf-temp{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+.wf-desc{font-size:9px;color:rgba(255,255,255,0.35);line-height:1.3}
+
+.w-tips-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:14px;padding:14px;animation:popIn 0.55s ease}
+.wt-title{font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:10px}
+.wt-tip{font-size:12px;color:rgba(255,255,255,0.6);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);line-height:1.5}
+.wt-tip:last-child{border-bottom:none}
+
+.w-quick{animation:popIn 0.6s ease}
+.wq-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+.wq-cities{display:flex;flex-wrap:wrap;gap:6px}
+.wq-city{padding:6px 14px;border-radius:20px;border:1px solid rgba(139,92,246,0.2);background:rgba(139,92,246,0.06);color:rgba(255,255,255,0.5);font-size:12px;text-decoration:none;transition:all 0.2s}
+.wq-city:hover{background:rgba(139,92,246,0.18);color:#c4b5fd}
+.wq-city.active{background:rgba(139,92,246,0.28);border-color:rgba(139,92,246,0.55);color:#c4b5fd}
+
+.w-map-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:14px;overflow:hidden;animation:popIn 0.4s ease}
+.wm-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(139,92,246,0.12)}
+.wm-title{font-size:13px;font-weight:700;color:#fff}
+.wm-open{font-size:11px;color:#06b6d4;text-decoration:none;font-weight:600}
+.wm-open:hover{color:#67e8f9}
+.wm-frame{height:320px;background:#0d1117}
+.wm-coords{padding:8px 14px;font-size:11px;color:rgba(255,255,255,0.3);border-top:1px solid rgba(139,92,246,0.08)}
+
+.w-nearby-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.14);border-radius:14px;padding:14px;animation:popIn 0.5s ease}
+.wn-title{font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:10px}
+.wn-links{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.wn-link{padding:9px 12px;border-radius:10px;border:1px solid rgba(139,92,246,0.15);background:rgba(139,92,246,0.06);color:rgba(255,255,255,0.6);font-size:12px;text-decoration:none;transition:all 0.2s;display:block}
+.wn-link:hover{background:rgba(139,92,246,0.18);color:#fff;border-color:rgba(139,92,246,0.4)}
+
+.w-plan-card{background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(6,182,212,0.07));border:1px solid rgba(139,92,246,0.25);border-radius:14px;padding:14px;animation:popIn 0.55s ease}
+.wp-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.wp-sub{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:12px}
+.wp-actions{display:flex;gap:7px;flex-wrap:wrap}
+.wp-btn{padding:8px 16px;border-radius:20px;border:1px solid rgba(139,92,246,0.28);background:rgba(139,92,246,0.1);color:#c4b5fd;font-size:12px;font-weight:600;text-decoration:none;transition:all 0.2s}
+.wp-btn:hover{background:rgba(139,92,246,0.25);color:#fff}
+.wp-btn.primary{background:linear-gradient(135deg,#8b5cf6,#06b6d4);border:none;color:#fff}
+
+.w-error{text-align:center;padding:3rem;color:rgba(255,255,255,0.4);max-width:400px;margin:0 auto}
+.w-error h3{font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}
+</style>
+{% endblock %}

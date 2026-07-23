@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Your Travel Hub — TravelAI{% endblock %}
+{% block content %}
+<div class="dashboard-page">
+
+  <div class="db-header">
+    <div class="db-welcome">
+      <div class="db-avatar">{{ user.username|first|upper }}</div>
+      <div>
+        <h1>Welcome back, {{ user.username }}</h1>
+        <p>Your travel hub</p>
+      </div>
+    </div>
+    <a href="/itinerary/create/" class="btn-new-trip">
+      <i class="ti ti-plus"></i> Plan new trip
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Trips planned</div>
+      <div class="stat-val">{{ stats.trips }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Destinations saved</div>
+      <div class="stat-val">{{ stats.destinations }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">AI chats</div>
+      <div class="stat-val">{{ stats.chats }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Countries explored</div>
+      <div class="stat-val">{{ stats.countries }}</div>
+    </div>
+  </div>
+
+  <!-- Upcoming Trip Banner -->
+  {% if upcoming_trip %}
+  <div class="upcoming-banner">
+    <div class="ub-left">
+      <i class="ti ti-plane"></i>
+      <div>
+        <div class="ub-title">Upcoming — {{ upcoming_trip.destination }}</div>
+        <div class="ub-sub">{{ upcoming_trip.start_date|date:"d M" }} – {{ upcoming_trip.end_date|date:"d M" }} · {{ upcoming_trip.duration_days }} nights</div>
+      </div>
+    </div>
+    <div class="ub-actions">
+      <a href="/itinerary/{{ upcoming_trip.pk }}/" class="btn-ub">View itinerary</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 3 Column Grid -->
+  <div class="db-grid">
+
+    <!-- Saved Itineraries -->
+    <div class="db-card">
+      <div class="dc-header">
+        <div class="dc-title">
+          <i class="ti ti-map" style="color:var(--text-accent)"></i>
+          Saved itineraries
+        </div>
+        <a href="/itinerary/" class="dc-link">View all</a>
+      </div>
+      {% for itin in itineraries %}
+      <div class="dc-row">
+        <div class="dc-row-left">
+          <span class="dc-emoji">🗺️</span>
+          <div>
+            <div class="dc-name">{{ itin.destination }}</div>
+            <div class="dc-meta">{{ itin.duration_days }} days · {{ itin.travellers }}</div>
+          </div>
+        </div>
+        <a href="/itinerary/{{ itin.pk }}/" class="btn-sm">View</a>
+      </div>
+      {% empty %}
+      <div class="dc-empty">
+        <i class="ti ti-map-off"></i>
+        <p>No itineraries yet</p>
+        <a href="/itinerary/create/">Create one</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Saved Destinations -->
+    <div class="db-card">
+      <div class="dc-header">
+        <div class="dc-title">
+          <i class="ti ti-heart" style="color:var(--text-danger)"></i>
+          Saved destinations
+        </div>
+        <a href="/recommendation/" class="dc-link">Explore</a>
+      </div>
+      {% for dest in saved_destinations %}
+      <div class="dc-row">
+        <div class="dc-row-left">
+          <span class="dc-emoji">📍</span>
+          <div>
+            <div class="dc-name">{{ dest.destination_name }}</div>
+            <div class="dc-meta">{{ dest.country }} · Match {{ dest.match_score }}%</div>
+          </div>
+        </div>
+        <span class="badge-saved">Saved</span>
+      </div>
+      {% empty %}
+      <div class="dc-empty">
+        <i class="ti ti-heart-off"></i>
+        <p>No saved destinations</p>
+        <a href="/recommendation/">Discover places</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Recent AI Chats -->
+    <div class="db-card">
+      <div class="dc-header">
+        <div class="dc-title">
+          <i class="ti ti-robot" style="color:var(--text-pro)"></i>
+          Recent AI chats
+        </div>
+        <a href="/chat/" class="dc-link">Open chat</a>
+      </div>
+      {% for chat in recent_chats %}
+      <a href="/chat/" class="dc-row dc-row-link">
+        <div class="dc-row-left">
+          <i class="ti ti-message" style="font-size:15px;color:var(--text-muted)"></i>
+          <div>
+            <div class="dc-name">{{ chat.message|truncatechars:32 }}</div>
+            <div class="dc-meta">{{ chat.created_at|timesince }} ago</div>
+          </div>
+        </div>
+        <i class="ti ti-arrow-right" style="font-size:14px;color:var(--text-muted)"></i>
+      </a>
+      {% empty %}
+      <div class="dc-empty">
+        <i class="ti ti-message-off"></i>
+        <p>No chats yet</p>
+        <a href="/chat/">Start chatting</a>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <a href="/chatbot/" class="qa-btn">
+      <i class="ti ti-robot"></i>
+      <span>Ask AI</span>
+    </a>
+    <a href="/booking/" class="qa-btn">
+      <i class="ti ti-plane"></i>
+      <span>Flights</span>
+    </a>
+    <a href="/booking/" class="qa-btn">
+      <i class="ti ti-building"></i>
+      <span>Hotels</span>
+    </a>
+    <a href="/itinerary/create/" class="qa-btn">
+      <i class="ti ti-map"></i>
+      <span>Itinerary</span>
+    </a>
+    <a href="/recommendation/" class="qa-btn">
+      <i class="ti ti-compass"></i>
+      <span>Discover</span>
+    </a>
+  </div>
+
+</div>
+
+<style>
+@keyframes bgShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.97)}100%{opacity:1;transform:scale(1)}}
+
+.dashboard-page{min-height:calc(100vh - 64px);padding:2rem;position:relative;display:flex;flex-direction:column;gap:1.25rem}
+.dashboard-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-1}
+
+.db-header{display:flex;align-items:center;justify-content:space-between;animation:slideUp 0.5s ease}
+.db-welcome{display:flex;align-items:center;gap:14px}
+.db-avatar{width:48px;height:48px;border-radius:50%;background:rgba(139,92,246,0.25);border:1px solid rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#c4b5fd}
+.db-welcome h1{font-size:20px;font-weight:700;color:#fff;margin:0 0 3px}
+.db-welcome p{font-size:13px;color:rgba(255,255,255,0.4);margin:0}
+.btn-new-trip{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:13px;font-weight:700;text-decoration:none;transition:transform 0.15s}
+.btn-new-trip:hover{transform:translateY(-1px)}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;animation:slideUp 0.55s ease}
+.stat-card{background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem}
+.stat-label{font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-val{font-size:28px;font-weight:700;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.upcoming-banner{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:14px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;animation:slideUp 0.6s ease}
+.ub-left{display:flex;align-items:center;gap:12px}
+.ub-left .ti-plane{font-size:22px;color:#6ee7b7}
+.ub-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
+.ub-sub{font-size:12px;color:rgba(16,185,129,0.8)}
+.ub-actions{display:flex;gap:8px}
+.btn-ub{padding:8px 18px;border-radius:20px;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.1);color:#6ee7b7;font-size:12px;font-weight:600;text-decoration:none;transition:all 0.2s}
+.btn-ub:hover{background:rgba(16,185,129,0.2);color:#fff}
+
+.db-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.db-card{background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:1rem 1.25rem;animation:popIn 0.4s ease both}
+.dc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dc-title{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px}
+.dc-title i{font-size:15px}
+.dc-link{font-size:12px;color:rgba(139,92,246,0.85);text-decoration:none;font-weight:500}
+.dc-link:hover{color:#c4b5fd}
+.dc-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)}
+.dc-row:last-child{border-bottom:none}
+.dc-row-link{text-decoration:none;transition:background 0.15s;border-radius:8px;margin:0 -8px;padding:9px 8px}
+.dc-row-link:hover{background:rgba(139,92,246,0.08)}
+.dc-row-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.dc-emoji{font-size:20px;flex-shrink:0}
+.dc-name{font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-meta{font-size:11px;color:rgba(255,255,255,0.38);margin-top:1px}
+.btn-sm{padding:5px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.28);background:transparent;color:#c4b5fd;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
+.btn-sm:hover{background:rgba(139,92,246,0.15);color:#fff}
+.badge-saved{padding:3px 10px;border-radius:20px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);color:#c4b5fd;font-size:11px;flex-shrink:0}
+.dc-empty{text-align:center;padding:1.5rem 0;color:rgba(255,255,255,0.25)}
+.dc-empty i{font-size:28px;margin-bottom:8px;display:block}
+.dc-empty p{font-size:12px;margin-bottom:8px}
+.dc-empty a{font-size:12px;color:rgba(139,92,246,0.8);text-decoration:none}
+
+.quick-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.qa-btn{display:flex;flex-direction:column;align-items:center;gap:8px;padding:1rem;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;text-decoration:none;transition:all 0.2s}
+.qa-btn:hover{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3);transform:translateY(-2px)}
+.qa-btn i{font-size:22px;color:rgba(139,92,246,0.8)}
+.qa-btn span{font-size:12px;font-weight:600;color:rgba(255,255,255,0.55)}
+.qa-btn:hover i{color:#c4b5fd}
+.qa-btn:hover span{color:#fff}
+</style>
+{% endblock %}

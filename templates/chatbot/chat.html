@@ -1,0 +1,751 @@
+{% extends "base.html" %}
+{% block title %}TravelAI · AI Chat{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Kill base.html .chat-shell override ── */
+.chat-shell {
+  all: unset !important;
+  display: flex !important;
+  height: calc(100vh - 57px) !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+main {
+  height: calc(100vh - 57px) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  z-index: 10 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+
+/* ── Reset & shell ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Override base.html's <main> so the chat can go full-height */
+main {
+  height: calc(100vh - 57px) !important;
+  overflow: hidden !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes msgIn    { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+@keyframes dotBlink { 0%,100% { opacity:.2 } 50% { opacity:1 } }
+@keyframes glow     { 0%,100% { box-shadow:0 0 8px rgba(139,92,246,.4) } 50% { box-shadow:0 0 22px rgba(139,92,246,.9) } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(-12px) } to { opacity:1; transform:translateX(0) } }
+@keyframes pulse    { 0%,100% { transform:scale(1); opacity:.6 } 50% { transform:scale(1.5); opacity:0 } }
+@keyframes float    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+
+/* ── Layout: 3-column flex ───────────────────────────────────────── */
+.trav-shell {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.trav-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: rgba(6,4,18,.92);
+  border-right: 1px solid rgba(139,92,246,.18);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+  gap: 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.trav-sidebar::-webkit-scrollbar { display:none; }
+
+.tsb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 14px;
+  border-bottom: 1px solid rgba(139,92,246,.12);
+  margin-bottom: 8px;
+}
+.tsb-gem {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg,#8b5cf6,#06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  animation: glow 3s ease-in-out infinite;
+}
+.tsb-name  { font-size:13px; font-weight:700; color:#fff; line-height:1.2; }
+.tsb-label { font-size:9px;  color:rgba(139,92,246,.8); letter-spacing:1.2px; text-transform:uppercase; }
+
+.tsb-new {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg,rgba(139,92,246,.25),rgba(6,182,212,.15));
+  border: 1px solid rgba(139,92,246,.35);
+  color: #c4b5fd;
+  font-size: 12px; font-weight: 700;
+  text-decoration: none;
+  transition: all .2s;
+  margin-bottom: 10px;
+}
+.tsb-new:hover { background: linear-gradient(135deg,rgba(139,92,246,.45),rgba(6,182,212,.3)); color:#fff; }
+
+.tsb-section-label {
+  font-size: 9px; font-weight:700; letter-spacing:1.3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.2);
+  padding: 0 6px;
+  margin: 4px 0;
+}
+
+.tsb-chat-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.4);
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border: 1px solid transparent;
+  animation: slideIn .3s ease both;
+}
+.tsb-chat-item:hover { background:rgba(139,92,246,.1); color:rgba(255,255,255,.8); }
+.tsb-chat-item.active {
+  background: linear-gradient(135deg,rgba(139,92,246,.2),rgba(6,182,212,.1));
+  border-color: rgba(139,92,246,.3);
+  color: #c4b5fd;
+}
+.tsb-dot {
+  width:6px; height:6px; border-radius:50%;
+  background: rgba(139,92,246,.4);
+  flex-shrink: 0;
+}
+.tsb-chat-item.active .tsb-dot { background:#8b5cf6; box-shadow:0 0 6px #8b5cf6; }
+
+.tsb-empty {
+  font-size: 11px;
+  color: rgba(255,255,255,.22);
+  padding: 8px 6px;
+  font-style: italic;
+}
+
+/* ── Main chat column ────────────────────────────────────────────── */
+.trav-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: rgba(8,4,24,.5);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* topbar */
+.trav-topbar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 18px;
+  background: rgba(6,4,18,.5);
+  border-bottom: 1px solid rgba(139,92,246,.14);
+}
+.trav-topbar-gem {
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg,#8b5cf6,#06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink:0;
+}
+.trav-topbar-title { font-size:14px; font-weight:700; color:#fff; margin:0; }
+.trav-topbar-sub   { font-size:11px; color:rgba(139,92,246,.8); margin:0; }
+.trav-status {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+}
+.trav-dot-live {
+  width:8px; height:8px; border-radius:50%;
+  background:#10b981; position:relative;
+}
+.trav-dot-live::after {
+  content:'';
+  position:absolute; inset:-3px; border-radius:50%;
+  background:#10b981; opacity:.25;
+  animation: pulse 1.8s ease-out infinite;
+}
+.trav-status-text { font-size:11px; color:#10b981; font-weight:600; }
+
+/* messages area */
+.trav-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,.15) transparent;
+}
+.trav-msgs::-webkit-scrollbar { width:4px; }
+.trav-msgs::-webkit-scrollbar-thumb { background:rgba(139,92,246,.2); border-radius:4px; }
+
+/* empty state */
+.trav-empty {
+  margin: auto;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  animation: msgIn .6s ease both;
+}
+.trav-empty-icon {
+  font-size: 52px;
+  animation: float 3s ease-in-out infinite;
+  margin-bottom: 16px;
+  display: block;
+}
+.trav-empty h3 {
+  font-size: 22px; font-weight:700;
+  background: linear-gradient(135deg,#c4b5fd,#67e8f9);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.trav-empty p {
+  font-size: 13px;
+  color: rgba(255,255,255,.38);
+  line-height: 1.65;
+  margin-bottom: 22px;
+}
+.trav-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 340px;
+  margin: 0 auto;
+}
+.trav-qbtn {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(139,92,246,.25);
+  background: rgba(139,92,246,.07);
+  color: rgba(255,255,255,.6);
+  font-size: 11.5px;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.45;
+  transition: all .2s;
+}
+.trav-qbtn:hover {
+  background: rgba(139,92,246,.2);
+  border-color: rgba(139,92,246,.55);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* message rows */
+.trav-row {
+  display: flex;
+  gap: 10px;
+  animation: msgIn .35s cubic-bezier(.22,1,.36,1) both;
+}
+.trav-row.user { flex-direction: row-reverse; }
+
+.trav-ava {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.trav-ava-ai   { background: linear-gradient(135deg,#8b5cf6,#06b6d4); }
+.trav-ava-user { background: linear-gradient(135deg,#ec4899,#f97316); }
+
+.trav-bubble {
+  max-width: 72%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.trav-bubble-ai {
+  background: rgba(139,92,246,.08);
+  border: 1px solid rgba(139,92,246,.18);
+  color: rgba(255,255,255,.88);
+  border-radius: 4px 16px 16px 16px;
+}
+.trav-bubble-user {
+  background: linear-gradient(135deg,#8b5cf6,#6d28d9);
+  color: #fff;
+  border-radius: 16px 4px 16px 16px;
+}
+.trav-time {
+  font-size: 10px;
+  color: rgba(255,255,255,.18);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+.trav-row.user .trav-time { text-align: right; }
+
+/* typing indicator */
+.trav-typing { display:none; }
+.trav-typing.active { display:flex; }
+.trav-typing-bubble {
+  background: rgba(139,92,246,.08);
+  border: 1px solid rgba(139,92,246,.18);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 18px;
+  display: flex; gap: 5px; align-items: center;
+}
+.trav-td {
+  width:7px; height:7px; border-radius:50%;
+  animation: dotBlink 1.2s ease-in-out infinite;
+}
+.trav-td:nth-child(1) { background:rgba(139,92,246,.85); }
+.trav-td:nth-child(2) { background:rgba(6,182,212,.85);  animation-delay:.2s; }
+.trav-td:nth-child(3) { background:rgba(236,72,153,.85); animation-delay:.4s; }
+
+/* suggestions strip */
+.trav-suggestions {
+  flex-shrink: 0;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(139,92,246,.1);
+}
+.trav-sbtn {
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(139,92,246,.22);
+  background: rgba(139,92,246,.05);
+  color: rgba(255,255,255,.5);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+}
+.trav-sbtn:hover {
+  background: rgba(139,92,246,.18);
+  border-color: rgba(139,92,246,.5);
+  color: #c4b5fd;
+}
+
+/* input zone */
+.trav-input-zone {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(139,92,246,.1);
+  display: flex; gap: 8px; align-items: flex-end;
+  background: rgba(6,4,18,.35);
+}
+.trav-input-wrap {
+  flex: 1;
+  background: rgba(139,92,246,.06);
+  border: 1px solid rgba(139,92,246,.18);
+  border-radius: 14px;
+  display: flex; align-items: center;
+  padding: 4px 4px 4px 14px;
+  transition: all .25s;
+}
+.trav-input-wrap:focus-within {
+  border-color: rgba(139,92,246,.55);
+  background: rgba(139,92,246,.1);
+}
+#trav-msg-input {
+  flex: 1;
+  background: transparent;
+  border: none; outline: none;
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 0;
+  resize: none;
+  font-family: inherit;
+  max-height: 100px;
+}
+#trav-msg-input::placeholder { color:rgba(255,255,255,.22); }
+.trav-send {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(135deg,#8b5cf6,#06b6d4);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.trav-send:hover  { transform:scale(1.07); box-shadow:0 0 18px rgba(139,92,246,.6); }
+.trav-send:active { transform:scale(.93); }
+
+/* ── Map panel ───────────────────────────────────────────────────── */
+.trav-map {
+  width: clamp(280px, 26vw, 420px);
+  flex-shrink: 0;
+  background: rgba(6,4,18,.88);
+  border-left: 1px solid rgba(139,92,246,.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.trav-map-header {
+  flex-shrink: 0;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(139,92,246,.12);
+}
+.trav-map-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:3px; }
+.trav-map-sub   { font-size:10px; color:rgba(139,92,246,.75); }
+#trav-gmaps-link {
+  display: none;
+  font-size: 10px; font-weight:700;
+  color: #06b6d4;
+  text-decoration: none;
+  margin-top: 5px;
+}
+#trav-gmaps-link:hover { color:#67e8f9; }
+
+.trav-map-frame {
+  flex: 1;
+  position: relative;
+  background: #0a0818;
+  min-height: 0;
+  overflow: hidden;
+}
+.trav-map-empty {
+  position: absolute; inset:0;
+  display: flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  color: rgba(255,255,255,.2);
+  font-size: 12px; text-align:center; line-height:1.8;
+  padding: 1rem;
+}
+.trav-map-empty-icon { font-size:38px; opacity:.18; margin-bottom:12px; }
+#trav-map-iframe {
+  display:none;
+  width:100%; height:100%;
+  border:none;
+}
+
+.trav-map-cards {
+  flex-shrink: 0;
+  padding: 10px;
+  display: flex; flex-direction:column; gap:6px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,.15) transparent;
+}
+.trav-place-card {
+  display: flex; align-items:center; gap:10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(139,92,246,.07);
+  border: 1px solid rgba(139,92,246,.15);
+  transition: all .2s;
+  animation: msgIn .4s ease both;
+}
+.trav-place-card:hover {
+  background: rgba(139,92,246,.15);
+  border-color: rgba(139,92,246,.38);
+}
+.trav-card-emoji  { font-size:18px; flex-shrink:0; }
+.trav-card-name   { font-size:11px; font-weight:700; color:#fff; }
+.trav-card-type   { font-size:10px; color:rgba(255,255,255,.35); }
+.trav-card-btn {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg,#8b5cf6,#06b6d4);
+  color: #fff;
+  font-size: 10px; font-weight:700;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity .2s;
+}
+.trav-card-btn:hover { opacity:.8; }
+
+/* ── AI response formatting ──────────────────────────────────────── */
+.trav-bubble-ai .resp-section  { margin-bottom:6px; }
+.trav-bubble-ai .resp-heading  { font-size:14px; font-weight:700; color:#c4b5fd; margin:10px 0 6px; padding-bottom:4px; border-bottom:1px solid rgba(139,92,246,.15); }
+.trav-bubble-ai .resp-text     { font-size:13px; line-height:1.6; color:rgba(255,255,255,.85); margin:4px 0; }
+.trav-bubble-ai .resp-list     { margin:4px 0; padding-left:18px; list-style:none; }
+.trav-bubble-ai .resp-list li::before { content:'•'; color:#8b5cf6; font-weight:700; display:inline-block; width:14px; margin-left:-14px; }
+.trav-bubble-ai .resp-ol       { padding-left:22px; list-style:none; counter-reset:item; }
+.trav-bubble-ai .resp-ol li    { counter-increment:item; }
+.trav-bubble-ai .resp-ol li::before { content:counter(item)'.'; color:#8b5cf6; font-weight:700; display:inline-block; width:18px; margin-left:-22px; }
+.trav-bubble-ai .resp-item     { font-size:13px; line-height:1.5; color:rgba(255,255,255,.82); padding:2px 0; }
+.trav-bubble-ai .resp-bold     { color:#f0e6ff; font-weight:700; }
+.trav-bubble-ai .resp-link     { color:#67e8f9; text-decoration:none; font-size:12px; font-weight:600; }
+.trav-bubble-ai .resp-link:hover { color:#a5f3fc; text-decoration:underline; }
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .trav-map { display:none; }
+}
+@media (max-width: 600px) {
+  .trav-sidebar { display:none; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="trav-shell">
+
+  <!-- ── Sidebar ─────────────────────────────── -->
+  <aside class="trav-sidebar">
+    <div class="tsb-brand">
+      <div class="tsb-gem">✦</div>
+      <div>
+        <div class="tsb-name">TravelAI</div>
+        <div class="tsb-label">Assistant</div>
+      </div>
+    </div>
+
+    <a href="{% url 'chatbot:chat' %}" class="tsb-new">✦ New conversation</a>
+
+    <div class="tsb-section-label">Recent chats</div>
+
+    {% for chat in recent_chats %}
+      <div class="tsb-chat-item {% if forloop.first %}active{% endif %}">
+        <div class="tsb-dot"></div>
+        {{ chat.message|truncatechars:26 }}
+      </div>
+    {% empty %}
+      <div class="tsb-empty">No chats yet</div>
+    {% endfor %}
+  </aside>
+
+  <!-- ── Main chat ───────────────────────────── -->
+  <div class="trav-main">
+
+    <!-- topbar -->
+    <div class="trav-topbar">
+      <div class="trav-topbar-gem">✦</div>
+      <div>
+        <p class="trav-topbar-title">TravelAI Assistant</p>
+        <p class="trav-topbar-sub">Powered by Llama 3.3 · Groq · Live Map</p>
+      </div>
+      <div class="trav-status">
+        <div class="trav-dot-live"></div>
+        <span class="trav-status-text">Live</span>
+      </div>
+    </div>
+
+    <!-- messages -->
+    <div class="trav-msgs" id="trav-msgs">
+
+      {% if not chats %}
+        <div class="trav-empty">
+          <span class="trav-empty-icon">✈️</span>
+          <h3>Where shall we explore?</h3>
+          <p>Your AI travel companion is ready.<br>Ask anything and watch it appear on the map.</p>
+          <div class="trav-quick-grid">
+            <button class="trav-qbtn" onclick="travSend('Places to visit in Manali')">🏔️ Manali highlights</button>
+            <button class="trav-qbtn" onclick="travSend('Best beaches in Goa')">🏖️ Goa beaches</button>
+            <button class="trav-qbtn" onclick="travSend('Paris tourist spots')">🗼 Paris spots</button>
+            <button class="trav-qbtn" onclick="travSend('Hotels in Bali')">🌴 Bali hotels</button>
+          </div>
+        </div>
+      {% endif %}
+
+      {% for chat in chats %}
+        <!-- user message -->
+        <div class="trav-row user">
+          <div class="trav-ava trav-ava-user">👤</div>
+          <div>
+            <div class="trav-bubble trav-bubble-user">{{ chat.message }}</div>
+            <div class="trav-time">{{ chat.created_at|date:"h:i A" }}</div>
+          </div>
+        </div>
+        <!-- ai response -->
+        <div class="trav-row">
+          <div class="trav-ava trav-ava-ai">✦</div>
+          <div>
+            <div class="trav-bubble trav-bubble-ai">{{ chat.response|safe }}</div>
+            <div class="trav-time">{{ chat.created_at|date:"h:i A" }}</div>
+          </div>
+        </div>
+      {% endfor %}
+
+      <!-- typing indicator -->
+      <div class="trav-row trav-typing" id="trav-typing">
+        <div class="trav-ava trav-ava-ai">✦</div>
+        <div class="trav-typing-bubble">
+          <div class="trav-td"></div>
+          <div class="trav-td"></div>
+          <div class="trav-td"></div>
+        </div>
+      </div>
+
+    </div><!-- /trav-msgs -->
+
+    <!-- suggestions strip -->
+    <div class="trav-suggestions">
+      <button class="trav-sbtn" onclick="travSend('Best budget hotels nearby?')">🏨 Hotels</button>
+      <button class="trav-sbtn" onclick="travSend('Best time of year to visit?')">📅 Best season</button>
+      <button class="trav-sbtn" onclick="travSend('Give me a packing list')">🎒 Packing list</button>
+      <button class="trav-sbtn" onclick="travSend('Local food I must try')">🍜 Local food</button>
+      <button class="trav-sbtn" onclick="travSend('Visa requirements for Indians')">🛂 Visa info</button>
+    </div>
+
+    <!-- input -->
+    <form method="post" id="trav-form" class="trav-input-zone">
+      {% csrf_token %}
+      <div class="trav-input-wrap">
+        <textarea
+          name="message"
+          id="trav-msg-input"
+          rows="1"
+          placeholder="Ask about destinations, hotels, flights…"
+          onkeydown="travKey(event)"
+          oninput="travResize(this)"
+        ></textarea>
+      </div>
+      <button type="submit" class="trav-send" aria-label="Send">➤</button>
+    </form>
+
+  </div><!-- /trav-main -->
+
+  <!-- ── Map panel ───────────────────────────── -->
+  <div class="trav-map">
+    <div class="trav-map-header">
+      <div class="trav-map-title" id="trav-map-title">🗺️ Destination Map</div>
+      <div class="trav-map-sub"  id="trav-map-sub">Search a destination to see it here</div>
+      <a id="trav-gmaps-link" href="#" target="_blank">Open in Google Maps ↗</a>
+    </div>
+
+    <div class="trav-map-frame">
+      <div class="trav-map-empty" id="trav-map-empty">
+        <div class="trav-map-empty-icon">🗺️</div>
+        <p>Search any destination<br>to see it on the map</p>
+      </div>
+      <iframe id="trav-map-iframe" src="" allowfullscreen loading="lazy"></iframe>
+    </div>
+
+    <div class="trav-map-cards" id="trav-map-cards"></div>
+  </div>
+
+</div><!-- /trav-shell -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ── Auto-scroll & resize ─────────────────────────────────────────── */
+(function(){
+  const m = document.getElementById('trav-msgs');
+  if (m) m.scrollTop = m.scrollHeight;
+})();
+
+function travResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function travKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('trav-form').submit();
+  }
+}
+
+function travSend(text) {
+  document.getElementById('trav-msg-input').value = text;
+  document.getElementById('trav-form').submit();
+}
+
+/* Show typing indicator on submit */
+document.getElementById('trav-form').addEventListener('submit', function(){
+  const msg = document.getElementById('trav-msg-input').value.trim();
+  if (!msg) return;
+  document.getElementById('trav-typing').classList.add('active');
+  const m = document.getElementById('trav-msgs');
+  if (m) m.scrollTop = m.scrollHeight;
+});
+
+/* ── Destination map data ─────────────────────────────────────────── */
+const DEST = {
+  manali:   { lat:32.2396, lng:77.1887, name:'Manali, Himachal Pradesh', cards:[{e:'🎿',n:'Solang Valley',t:'Adventure & skiing'},{e:'❄️',n:'Rohtang Pass',t:'Mountain pass'},{e:'🛕',n:'Hadimba Temple',t:'Historic temple'}]},
+  goa:      { lat:15.2993, lng:74.1240, name:'Goa, India',               cards:[{e:'🏖️',n:'Baga Beach',t:'Water sports'},{e:'🌊',n:'Calangute Beach',t:'Largest beach'},{e:'⛪',n:'Basilica of Bom Jesus',t:'UNESCO Heritage'}]},
+  paris:    { lat:48.8566, lng:2.3522,  name:'Paris, France',            cards:[{e:'🗼',n:'Eiffel Tower',t:'330m landmark'},{e:'🖼️',n:'The Louvre',t:'Art museum'},{e:'⛪',n:'Notre-Dame',t:'Cathedral'}]},
+  bali:     { lat:-8.3405, lng:115.092, name:'Bali, Indonesia',          cards:[{e:'🛕',n:'Tanah Lot',t:'Ocean temple'},{e:'🌾',n:'Ubud Terraces',t:'UNESCO'},{e:'🏖️',n:'Seminyak Beach',t:'Sunset beach'}]},
+  dubai:    { lat:25.2048, lng:55.2708, name:'Dubai, UAE',               cards:[{e:'🏙️',n:'Burj Khalifa',t:'Tallest building'},{e:'🏖️',n:'Jumeirah Beach',t:'White sand'}]},
+  london:   { lat:51.5074, lng:-0.1278, name:'London, UK',               cards:[{e:'🎡',n:'London Eye',t:'Observation wheel'},{e:'🏰',n:'Tower of London',t:'Royal fortress'}]},
+  tokyo:    { lat:35.6762, lng:139.650, name:'Tokyo, Japan',             cards:[{e:'🗼',n:'Tokyo Tower',t:'Red tower'},{e:'⛩️',n:'Senso-ji Temple',t:'Ancient temple'}]},
+  bangkok:  { lat:13.7563, lng:100.502, name:'Bangkok, Thailand',        cards:[{e:'⛩️',n:'Wat Pho',t:'Reclining Buddha'},{e:'🏯',n:'Grand Palace',t:'Royal residence'}]},
+  rome:     { lat:41.9028, lng:12.4964, name:'Rome, Italy',              cards:[{e:'🏛️',n:'Colosseum',t:'Amphitheatre'},{e:'⛪',n:'Vatican City',t:'Smallest country'}]},
+  kashmir:  { lat:34.0837, lng:74.7973, name:'Srinagar, Kashmir',        cards:[{e:'🏔️',n:'Dal Lake',t:'Houseboat stays'},{e:'⛷️',n:'Gulmarg',t:'Skiing resort'}]},
+  agra:     { lat:27.1767, lng:78.0081, name:'Agra, India',              cards:[{e:'🕌',n:'Taj Mahal',t:'UNESCO Wonder'},{e:'🏯',n:'Agra Fort',t:'Mughal fort'}]},
+  jaipur:   { lat:26.9124, lng:75.7873, name:'Jaipur, India',            cards:[{e:'🏯',n:'Amber Fort',t:'Hilltop fort'},{e:'🌬️',n:'Hawa Mahal',t:'Palace of Winds'}]},
+  singapore:{ lat:1.3521,  lng:103.819, name:'Singapore',                cards:[{e:'🌳',n:'Gardens by the Bay',t:'Supertrees'},{e:'🏝️',n:'Sentosa Island',t:'Beach & theme parks'}]},
+  maldives: { lat:3.2028,  lng:73.2207, name:'Maldives',                 cards:[{e:'🐠',n:'Coral Reefs',t:'Snorkelling & diving'},{e:'🌅',n:'Overwater Villas',t:'Luxury stays'}]},
+  new_york: { lat:40.7128, lng:-74.006, name:'New York, USA',            cards:[{e:'🗽',n:'Statue of Liberty',t:'Iconic landmark'},{e:'🌳',n:'Central Park',t:'Urban oasis'}]},
+};
+
+/* Auto-detect destination from page text after AI responds */
+function detectAndShowMap() {
+  const pageText = document.body.innerText.toLowerCase();
+  for (const [key, data] of Object.entries(DEST)) {
+    const alias = key.replace('_',' ');
+    if (pageText.includes(key) || pageText.includes(alias)) {
+      showMap(key);
+      break;
+    }
+  }
+}
+
+function showMap(key) {
+  const data = DEST[key];
+  if (!data) return;
+
+  /* update header */
+  document.getElementById('trav-map-title').textContent = '📍 ' + data.name;
+  document.getElementById('trav-map-sub').textContent   = 'Showing top attractions';
+
+  /* gmaps link */
+  const link = document.getElementById('trav-gmaps-link');
+  link.href  = `https://www.google.com/maps/search/${encodeURIComponent(data.name)}`;
+  link.style.display = 'block';
+
+  /* embed */
+  const empty  = document.getElementById('trav-map-empty');
+  const iframe = document.getElementById('trav-map-iframe');
+  empty.style.display  = 'none';
+  iframe.style.display = 'block';
+  iframe.src = `https://maps.google.com/maps?q=${data.lat},${data.lng}&z=12&output=embed`;
+
+  /* place cards */
+  const cards = document.getElementById('trav-map-cards');
+  cards.innerHTML = '';
+  data.cards.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'trav-place-card';
+    div.style.animationDelay = (i * .08) + 's';
+    div.innerHTML = `
+      <div class="trav-card-emoji">${c.e}</div>
+      <div>
+        <div class="trav-card-name">${c.n}</div>
+        <div class="trav-card-type">${c.t}</div>
+      </div>
+      <a class="trav-card-btn"
+         href="https://www.google.com/maps/search/${encodeURIComponent(c.n + ' ' + data.name)}"
+         target="_blank">View</a>
+    `;
+    cards.appendChild(div);
+  });
+}
+
+/* Run map detection on page load (for existing chats) */
+window.addEventListener('DOMContentLoaded', detectAndShowMap);
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}AI Travel Agent{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+ <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    @keyframes colorShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+    @keyframes float2{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+    @keyframes ripple{0%{transform:scale(0);opacity:0.6}100%{transform:scale(2.5);opacity:0}}
+
+    body{font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;background:#0f0c29;position:relative;overflow-x:hidden}
+
+    .bg-anim{position:fixed;inset:0;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);background-size:400% 400%;animation:colorShift 8s ease infinite;z-index:0}
+    .orb{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0}
+    .orb1{width:350px;height:350px;background:rgba(120,80,255,0.3);top:-80px;left:-80px;animation:float1 7s ease-in-out infinite}
+    .orb2{width:250px;height:250px;background:rgba(0,200,255,0.2);top:10%;right:-60px;animation:float2 5s ease-in-out infinite}
+    .orb3{width:200px;height:200px;background:rgba(255,80,180,0.18);bottom:10%;left:30%;animation:float1 9s ease-in-out infinite}
+    .stars-bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+    .star{position:absolute;background:#fff;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+
+/* navbar */
+    nav.main-nav{position:relative;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:rgba(255,255,255,0.12);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,0.18)}
+    .nav-brand{font-size:18px;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+    .nav-links a{margin-left:20px;font-size:14px;color:rgba(255,255,255,0.65);text-decoration:none;transition:color 0.2s}
+    .nav-links a:hover{color:#fff}
+    .nav-btn{background:linear-gradient(135deg,#7b4fff,#00c8ff);color:#fff !important;padding:7px 18px;border-radius:8px;font-weight:600}
+
+    /* main content */
+    main{position:relative;z-index:10;}
+
+    
+
+    /* messages */
+    .messages{padding:12px 24px 0}
+    .msg{padding:10px 16px;border-radius:10px;margin-bottom:8px;font-size:14px;backdrop-filter:blur(8px)}
+    .msg-success{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#86efac}
+    .msg-info{background:rgba(123,79,255,0.15);border:1px solid rgba(123,79,255,0.3);color:#c4b5fd}
+    .msg-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5}
+
+    /* auth layout */
+    .auth-wrapper{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:2rem}
+    .auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:2rem;width:100%;max-width:420px;animation:slideUp 0.6s cubic-bezier(.22,1,.36,1) both;box-shadow:0 8px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1)}
+    .auth-brand{text-align:center;margin-bottom:1.75rem}
+    .auth-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#7b4fff,#00c8ff);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:26px}
+    .auth-brand h2{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+    .auth-brand p{font-size:13px;color:rgba(255,255,255,0.5)}
+    .auth-tabs{display:flex;background:rgba(255,255,255,0.07);border-radius:12px;padding:4px;margin-bottom:1.5rem;gap:4px}
+    .auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,0.45);border:none;background:transparent;border-radius:9px;cursor:pointer;transition:all 0.25s;text-decoration:none;display:block}
+    .auth-tab.active{background:rgba(255,255,255,0.15);color:#fff}
+    .auth-field{margin-bottom:1rem}
+    .auth-field label{font-size:12px;font-weight:600;color:rgba(255,255,255,0.55);letter-spacing:0.5px;margin-bottom:6px;display:block}
+    .auth-field input{width:100%;padding:11px 14px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;background:rgba(255,255,255,0.07);color:#fff;font-size:14px;outline:none;transition:all 0.25s}
+    .auth-field input::placeholder{color:rgba(255,255,255,0.28)}
+    .auth-field input:focus{border-color:rgba(123,79,255,0.8);background:rgba(255,255,255,0.1);box-shadow:0 0 0 3px rgba(123,79,255,0.2)}
+    .auth-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .pw-wrap{position:relative}
+    .pw-wrap input{padding-right:42px}
+    .eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:16px;padding:0;transition:color 0.2s}
+    .eye-btn:hover{color:rgba(255,255,255,0.8)}
+    .btn-auth{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:0.5rem;background:linear-gradient(135deg,#7b4fff,#00c8ff);color:#fff;box-shadow:0 4px 20px rgba(123,79,255,0.4);transition:transform 0.15s,box-shadow 0.15s;position:relative;overflow:hidden}
+    .btn-auth:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(123,79,255,0.55)}
+    .auth-divider{display:flex;align-items:center;gap:10px;margin:1rem 0}
+    .auth-divider hr{flex:1;border:none;border-top:1px solid rgba(255,255,255,0.1)}
+    .auth-divider span{font-size:12px;color:rgba(255,255,255,0.3)}
+    .social-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0.25rem}
+    .btn-social{padding:9px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;text-decoration:none}
+    .btn-social:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25);color:#fff}
+    .auth-footer{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:1.25rem}
+    .auth-footer a{color:#a78bfa;text-decoration:none;font-weight:600}
+    .auth-alert{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-bottom:1rem;display:flex;align-items:center;gap:8px;animation:shake 0.4s ease}
+    .sbar-wrap{display:flex;gap:4px;margin-top:7px}
+    .sbar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 0.3s}
+    .sbar.weak{background:#ef4444}
+    .sbar.ok{background:#f59e0b}
+    .sbar.good{background:#22c55e}
+    .sbar.strong{background:linear-gradient(90deg,#7b4fff,#00c8ff)}
+    .shint{font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;display:block}
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="bg-anim"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div class="stars-bg" id="stars-bg"></div>
+
+<nav class="main-nav">
+    <a href="{% url 'home' %}" class="nav-brand">
+        ✈️ AI Travel Agent
+    </a>
+
+    <div class="nav-links">
+
+        <a href="{% url 'home' %}">Home</a>
+
+        {% if user.is_authenticated %}
+
+<a href="{% url 'dashboard' %}">My Trips</a>
+
+            <a href="{% url 'recommendation:recommendation' %}">✦ Destinations</a>
+
+            <a href="{% url 'chatbot:chat' %}">🤖 AI Chat</a>
+
+            <a href="{% url 'booking:home' %}">Booking</a>
+
+            
+
+            <a href="{% url 'logout' %}">Logout</a>
+
+        {% else %}
+
+            <a href="{% url 'login' %}">Sign In</a>
+
+            <a href="{% url 'register' %}" class="nav-btn">
+                Get Started
+            </a>
+
+        {% endif %}
+
+    </div>
+</nav>
+
+{% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+      <div class="msg msg-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<script>
+const sb=document.getElementById('stars-bg');
+for(let i=0;i<50;i++){
+  const s=document.createElement('div');
+  s.className='star';
+  const sz=Math.random()*2+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s`;
+  sb.appendChild(s);
+}
+function togglePw(id,btn){
+  const inp=document.getElementById(id);
+  const show=inp.type==='text';
+  inp.type=show?'password':'text';
+  btn.querySelector('i').className=show?'ti ti-eye':'ti ti-eye-off';
+}
+function checkStrength(val){
+  const bars=['s1','s2','s3','s4'].map(id=>document.getElementById(id));
+  const hint=document.getElementById('shint');
+  if(!hint)return;
+  bars.forEach(b=>{if(b)b.className='sbar'});
+  if(!val)return;
+  let sc=0;
+  if(val.length>=8)sc++;
+  if(/[A-Z]/.test(val))sc++;
+  if(/[0-9]/.test(val))sc++;
+  if(/[^A-Za-z0-9]/.test(val))sc++;
+  const cls=sc<=1?'weak':sc===2?'ok':sc===3?'good':'strong';
+  for(let i=0;i<sc;i++){if(bars[i])bars[i].classList.add(cls);}
+  hint.textContent=['','Weak — add numbers','Fair — add uppercase','Good — almost there!','Strong password!'][sc]||'';
+}
+</script>
+{% block extra_js %}
+{% endblock %}
+</body>
+</html>

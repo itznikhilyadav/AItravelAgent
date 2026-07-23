@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Create account — AI Travel Agent{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">🗺️</div>
+      <h2>Create your account</h2>
+      <p>Start planning AI-powered trips</p>
+    </div>
+    <div class="auth-tabs">
+      <a href="{% url 'login' %}" class="auth-tab">Sign in</a>
+      <a href="{% url 'register' %}" class="auth-tab active">Create account</a>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="auth-row">
+        <div class="auth-field">
+          <label>First name</label>
+          <input type="text" name="first_name" placeholder="Alex"/>
+        </div>
+        <div class="auth-field">
+          <label>Last name</label>
+          <input type="text" name="last_name" placeholder="Smith"/>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label>👤 Username</label>
+        <input type="text" name="username" placeholder="alex_smith" required/>
+      </div>
+      <div class="auth-field">
+        <label>✉️ Email</label>
+        <input type="email" name="email" placeholder="alex@email.com" required/>
+      </div>
+      <div class="auth-field">
+        <label>🔒 Password</label>
+        <div class="pw-wrap">
+          <input type="password" name="password1" id="rp" placeholder="••••••••"
+                 oninput="checkStrength(this.value)" required/>
+          <button type="button" class="eye-btn" onclick="togglePw('rp',this)"><i class="ti ti-eye"></i></button>
+        </div>
+        <div class="sbar-wrap">
+          <div class="sbar" id="s1"></div>
+          <div class="sbar" id="s2"></div>
+          <div class="sbar" id="s3"></div>
+          <div class="sbar" id="s4"></div>
+        </div>
+        <span class="shint" id="shint">Use 8+ characters with numbers and symbols</span>
+      </div>
+      <div class="auth-field">
+        <label>🔒 Confirm password</label>
+        <div class="pw-wrap">
+          <input type="password" name="password2" placeholder="••••••••" required/>
+        </div>
+      </div>
+      <button type="submit" class="btn-auth">Create account</button>
+    </form>
+    <p class="auth-footer">Have an account? <a href="{% url 'login' %}">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Plan a Trip — TravelAI{% endblock %}
+{% block content %}
+<div class="itin-page">
+  <div class="itin-hero">
+    <h1>🗺️ AI Itinerary Builder</h1>
+    <p>Generate a complete day-by-day trip plan in seconds with Groq AI</p>
+  </div>
+
+  {% if error %}
+    <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="itin-form" onsubmit="showLoading()">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="ifield">
+        <label>Destination</label>
+        <input type="text" name="destination" placeholder="Manali, Paris, Bali…" required/>
+      </div>
+      <div class="ifield">
+        <label>Start date</label>
+        <input type="date" name="start_date" required/>
+      </div>
+      <div class="ifield">
+        <label>Duration</label>
+        <select name="duration">
+          <option value="3">3 days</option>
+          <option value="5" selected>5 days</option>
+          <option value="7">7 days</option>
+          <option value="10">10 days</option>
+          <option value="14">14 days</option>
+        </select>
+      </div>
+      <div class="ifield">
+        <label>Travellers</label>
+        <select name="travellers">
+          <option>Solo</option>
+          <option>Couple</option>
+          <option>Family with kids</option>
+          <option>Group of friends</option>
+        </select>
+      </div>
+      <div class="ifield">
+        <label>Budget</label>
+        <select name="budget">
+          <option>Budget (Under $50/day)</option>
+          <option selected>Mid-range ($50-150/day)</option>
+          <option>Luxury ($150+/day)</option>
+        </select>
+      </div>
+      <div class="ifield">
+        <label>Travel style</label>
+        <select name="style">
+          <option>Relaxed — few activities per day</option>
+          <option selected>Balanced — mix of rest and activities</option>
+          <option>Packed — maximum activities</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ifield" style="margin-top:1rem">
+      <label>Your interests</label>
+      <div class="chips">
+        
+        {% for interest in interests %}
+          <label class="chip">
+            <input type="checkbox" name="interests" value="{{ interest }}"
+                   style="display:none"
+                   onchange="this.parentElement.classList.toggle('on',this.checked)"/>
+            {{ interest }}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit" class="btn-generate" id="gen-btn">
+      ✦ Generate my itinerary with AI
+    </button>
+  </form>
+
+  <div class="loading-state" id="loading" style="display:none">
+    <div class="l-orb"></div>
+    <h3>AI is crafting your perfect trip…</h3>
+    <p>Building a personalised day-by-day itinerary just for you</p>
+    <div class="l-dots">
+      <span style="background:#8b5cf6"></span>
+      <span style="background:#06b6d4;animation-delay:0.2s"></span>
+      <span style="background:#f9a8d4;animation-delay:0.4s"></span>
+    </div>
+  </div>
+
+  {% if user.itinerary_set.exists %}
+  <div class="saved-trips">
+    <h3>Your saved trips</h3>
+    <div class="trips-grid">
+      {% for trip in user.itinerary_set.all|slice:":3" %}
+        <a href="{% url 'itinerary:detail' trip.pk %}" class="trip-card">
+          <div class="trip-dest">{{ trip.destination }}</div>
+          <div class="trip-meta">{{ trip.duration_days }} days · {{ trip.travellers }}</div>
+          <div class="trip-date">Created {{ trip.created_at|date:"M d, Y" }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+@keyframes bgShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.itin-page{min-height:calc(100vh - 64px);padding:2rem;position:relative}
+.itin-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-1}
+.itin-hero{text-align:center;margin-bottom:1.75rem;animation:slideUp 0.5s ease}
+.itin-hero h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.itin-hero p{font-size:13px;color:rgba(255,255,255,0.4)}
+.error-msg{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:12px 16px;font-size:13px;color:#fca5a5;margin-bottom:1rem;max-width:800px;margin-left:auto;margin-right:auto}
+.itin-form{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,0.2);border-radius:20px;padding:1.75rem;max-width:800px;margin:0 auto 1.5rem;animation:slideUp 0.6s ease}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:0}
+.ifield label{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.8px;text-transform:uppercase;display:block;margin-bottom:7px}
+.ifield input,.ifield select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:10px;color:#fff;font-size:13px;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border 0.2s}
+.ifield input:focus,.ifield select:focus{border-color:rgba(139,92,246,0.6)}
+.ifield input::placeholder{color:rgba(255,255,255,0.28)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.chip{padding:7px 14px;border-radius:20px;border:1px solid rgba(139,92,246,0.22);background:rgba(139,92,246,0.06);color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;transition:all 0.2s;user-select:none}
+.chip.on{background:rgba(139,92,246,0.28);border-color:rgba(139,92,246,0.65);color:#c4b5fd}
+.btn-generate{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:1.25rem;transition:transform 0.15s,box-shadow 0.15s;position:relative;overflow:hidden}
+.btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,0.4)}
+.btn-generate::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);animation:shimmer 2s infinite}
+.loading-state{text-align:center;padding:3rem;max-width:400px;margin:0 auto;animation:slideUp 0.4s ease}
+.l-orb{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#06b6d4);margin:0 auto 1.25rem;animation:pulse 1.5s ease-in-out infinite}
+.loading-state h3{font-size:18px;font-weight:700;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.loading-state p{font-size:13px;color:rgba(255,255,255,0.38);margin-bottom:1.25rem}
+.l-dots{display:flex;gap:8px;justify-content:center}
+.l-dots span{width:10px;height:10px;border-radius:50%;animation:blink 1.2s infinite;display:block}
+.saved-trips{max-width:800px;margin:0 auto}
+.saved-trips h3{font-size:16px;font-weight:700;color:#fff;margin-bottom:12px}
+.trips-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.trip-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:12px;padding:14px;text-decoration:none;transition:all 0.2s;display:block}
+.trip-card:hover{border-color:rgba(139,92,246,0.45);transform:translateY(-2px)}
+.trip-dest{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.trip-meta{font-size:12px;color:rgba(139,92,246,0.8);margin-bottom:4px}
+.trip-date{font-size:11px;color:rgba(255,255,255,0.3)}
+</style>
+
+{% block extra_js %}
+<script>
+function showLoading(){
+  document.querySelector('.itin-form').style.opacity='0.5';
+  document.getElementById('gen-btn').disabled=true;
+  document.getElementById('gen-btn').textContent='⏳ Generating…';
+  document.getElementById('loading').style.display='block';
+  window.scrollTo({top:document.getElementById('loading').offsetTop-80,behavior:'smooth'});
+}
+</script>
+{% endblock %}
+{% endblock %}

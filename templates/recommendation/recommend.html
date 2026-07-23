@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Destination Finder — TravelAI{% endblock %}
+{% block content %}
+<div class="rec-page">
+
+  <div class="rec-hero">
+    <h1>✦ Destination Finder</h1>
+    <p>Tell us your preferences — our AI matches you with perfect destinations</p>
+  </div>
+
+  <form method="post" class="pref-card" onsubmit="showLoading()">
+    {% csrf_token %}
+    <div class="pref-grid">
+      <div class="pref-field">
+        <label>Trip type</label>
+        <select name="trip_type">
+          {% for t in trip_types %}
+            <option {% if preferences.trip_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="pref-field">
+        <label>Climate preference</label>
+        <select name="climate">
+          {% for c in climates %}
+            <option {% if preferences.climate == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="pref-field">
+        <label>Budget per day: <span id="bval">${{ preferences.budget|default:100 }}</span></label>
+        <input type="range" name="budget" min="20" max="500" step="10"
+               value="{{ preferences.budget|default:100 }}"
+               oninput="document.getElementById('bval').textContent='$'+this.value"/>
+      </div>
+      <div class="pref-field">
+        <label>Duration: <span id="dval">{{ preferences.duration|default:7 }} days</span></label>
+        <input type="range" name="duration" min="2" max="30" step="1"
+               value="{{ preferences.duration|default:7 }}"
+               oninput="document.getElementById('dval').textContent=this.value+' days'"/>
+      </div>
+    </div>
+
+    <div class="pref-field" style="margin-top:1rem">
+      <label>Activities you love</label>
+      <div class="chip-group">
+        {% for activity in activities %}
+          <label class="chip {% if activity in preferences.activities %}on{% endif %}">
+            <input type="checkbox" name="activities" value="{{ activity }}"
+                   {% if activity in preferences.activities %}checked{% endif %}
+                   style="display:none"
+                   onchange="this.parentElement.classList.toggle('on',this.checked)"/>
+            {{ activity }}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="submit" class="btn-find" id="find-btn">
+      ✦ Find my perfect destinations
+    </button>
+  </form>
+
+  <!-- Loading State -->
+  <div class="loading-state" id="loading-state" style="display:none">
+    <div class="loading-orb"></div>
+    <h3>AI is finding your perfect destinations…</h3>
+    <p>Analysing your preferences with Groq AI</p>
+    <div class="loading-dots">
+      <div class="ld"></div>
+      <div class="ld"></div>
+      <div class="ld"></div>
+    </div>
+  </div>
+
+  {% if results %}
+  <div class="results-section">
+    <p class="results-label">
+      ✦ Showing <span>{{ results|length }} destinations</span> matched to your preferences
+    </p>
+    <div class="dest-grid">
+      {% for dest in results %}
+      <div class="dest-card {% if forloop.first or forloop.counter == 2 %}top-card{% endif %}"
+           style="animation-delay:{{ forloop.counter0 }}00ms">
+        <div class="card-hero">
+          <span class="dest-emoji">{{ dest.emoji }}</span>
+          {% if forloop.first %}
+            <div class="top-badge gradient-badge">⭐ Best match</div>
+          {% elif forloop.counter == 2 %}
+            <div class="top-badge value-badge">💎 Top value</div>
+          {% endif %}
+        </div>
+
+        <div class="card-body">
+          <div class="dest-name">{{ dest.name }}</div>
+          <div class="dest-country">📍 {{ dest.country }}</div>
+          <p class="dest-desc">{{ dest.description }}</p>
+
+          <!-- Score bars -->
+          {% for key, val in dest.scores.items %}
+          <div class="score-row">
+            <span class="score-lbl">{{ key }}</span>
+            <div class="score-track">
+              <div class="score-bar" style="width:{{ val }}%"></div>
+            </div>
+            <span class="score-num">{{ val }}%</span>
+          </div>
+          {% endfor %}
+
+          <!-- Tags -->
+          <div class="dest-tags">
+            {% for tag in dest.tags %}
+              <span class="tag">{{ tag }}</span>
+            {% endfor %}
+          </div>
+
+          <!-- Highlights -->
+          {% if dest.highlights %}
+          <div class="highlights-box">
+            <div class="highlights-title">✦ Top highlights</div>
+            {% for h in dest.highlights %}
+              <div class="highlight-item">→ {{ h }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Best time & Budget -->
+          <div class="meta-row">
+            {% if dest.best_time %}
+              <div class="meta-item">📅 {{ dest.best_time }}</div>
+            {% endif %}
+            {% if dest.budget_range %}
+              <div class="meta-item budget-meta">💰 {{ dest.budget_range }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            <span class="match-pill {% if dest.scores.match >= 85 %}high{% else %}med{% endif %}">
+              {% if dest.scores.match >= 85 %}
+                ✓ Strong match
+              {% else %}
+                ~ Good match
+              {% endif %}
+            </span>
+            <form method="post" action="{% url 'recommendation:save_destination' %}" style="display:inline">
+
+
+              {% csrf_token %}
+              <input type="hidden" name="name" value="{{ dest.name }}">
+              <input type="hidden" name="country" value="{{ dest.country }}">
+              <input type="hidden" name="score" value="{{ dest.scores.match }}">
+              <button type="submit"
+                class="btn-save {% if dest.name in saved_destinations %}saved{% endif %}">
+                {% if dest.name in saved_destinations %}✓ Saved{% else %}♡ Save{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+@keyframes bgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{opacity:0;transform:scale(0.9) translateY(12px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes barGrow{from{width:0}to{width:inherit}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}}
+@keyframes orbPulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.1);opacity:1}}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+.rec-page{min-height:calc(100vh - 64px);padding:2rem;position:relative;overflow-x:hidden}
+.rec-page::before{content:'';position:fixed;inset:0;background:linear-gradient(135deg,#080616,#1a0533,#0d1a3a);background-size:300% 300%;animation:bgShift 10s ease infinite;z-index:-2}
+
+.rec-hero{text-align:center;margin-bottom:1.75rem;animation:slideUp 0.5s ease}
+.rec-hero h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,#c4b5fd,#67e8f9,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.rec-hero p{font-size:13px;color:rgba(255,255,255,0.45)}
+
+.pref-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,0.2);border-radius:20px;padding:1.75rem;margin-bottom:1.75rem;max-width:860px;margin-left:auto;margin-right:auto;animation:slideUp 0.6s ease}
+.pref-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.pref-field label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.8px;text-transform:uppercase;display:block;margin-bottom:8px}
+.pref-field select,.pref-field input[type=range]{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:10px;color:#fff;font-size:13px;padding:10px 12px;outline:none;transition:border 0.2s;-webkit-appearance:none}
+.pref-field select:focus{border-color:rgba(139,92,246,0.6)}
+.chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.chip{padding:7px 14px;border-radius:20px;border:1px solid rgba(139,92,246,0.22);background:rgba(139,92,246,0.06);color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;transition:all 0.2s;user-select:none}
+.chip.on{background:rgba(139,92,246,0.28);border-color:rgba(139,92,246,0.65);color:#c4b5fd}
+
+.btn-find{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:1.25rem;transition:transform 0.15s,box-shadow 0.15s;position:relative;overflow:hidden}
+.btn-find:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,0.4)}
+.btn-find::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);animation:shimmer 2s infinite}
+
+/* Loading */
+.loading-state{text-align:center;padding:3rem;animation:slideUp 0.4s ease}
+.loading-orb{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#06b6d4);margin:0 auto 1.25rem;animation:orbPulse 1.5s ease-in-out infinite}
+.loading-state h3{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;background:linear-gradient(135deg,#c4b5fd,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.loading-state p{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:1.25rem}
+.loading-dots{display:flex;gap:8px;justify-content:center}
+.ld{width:10px;height:10px;border-radius:50%;background:rgba(139,92,246,0.7);animation:blink 1.2s ease-in-out infinite}
+.ld:nth-child(2){animation-delay:0.2s;background:rgba(6,182,212,0.7)}
+.ld:nth-child(3){animation-delay:0.4s;background:rgba(249,168,212,0.7)}
+
+/* Results */
+.results-section{max-width:1060px;margin:0 auto;animation:slideUp 0.5s ease}
+.results-label{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:1.25rem}
+.results-label span{color:#8b5cf6;font-weight:700}
+.dest-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+.dest-card{background:rgba(255,255,255,0.04);border:1px solid rgba(139,92,246,0.15);border-radius:16px;overflow:hidden;transition:all 0.25s;animation:popIn 0.5s ease both}
+.dest-card:hover{border-color:rgba(139,92,246,0.5);transform:translateY(-4px);box-shadow:0 12px 32px rgba(139,92,246,0.2)}
+.top-card{border-color:rgba(139,92,246,0.4);background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(6,182,212,0.06))}
+
+.card-hero{height:90px;display:flex;align-items:center;justify-content:center;position:relative;background:rgba(139,92,246,0.07);border-bottom:1px solid rgba(139,92,246,0.12)}
+.dest-emoji{font-size:44px}
+.top-badge{position:absolute;top:8px;left:8px;font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:0.5px}
+.gradient-badge{background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff}
+.value-badge{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff}
+
+.card-body{padding:14px}
+.dest-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
+.dest-country{font-size:11px;color:rgba(255,255,255,0.38);margin-bottom:8px}
+.dest-desc{font-size:11px;color:rgba(255,255,255,0.48);line-height:1.55;margin-bottom:10px}
+
+.score-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.score-lbl{font-size:10px;color:rgba(255,255,255,0.3);width:44px;flex-shrink:0;text-transform:capitalize}
+.score-track{flex:1;height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden}
+.score-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,#8b5cf6,#06b6d4);animation:barGrow 0.9s cubic-bezier(.22,1,.36,1) both}
+.score-num{font-size:10px;color:#8b5cf6;font-weight:700;min-width:28px;text-align:right}
+
+.dest-tags{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.tag{font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:rgba(255,255,255,0.5)}
+
+/* Highlights */
+.highlights-box{margin:10px 0;padding:9px 11px;background:rgba(139,92,246,0.07);border-radius:10px;border:1px solid rgba(139,92,246,0.15)}
+.highlights-title{font-size:10px;font-weight:700;color:rgba(139,92,246,0.85);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px}
+.highlight-item{font-size:11px;color:rgba(255,255,255,0.55);padding:2px 0;line-height:1.45}
+
+/* Meta */
+.meta-row{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.meta-item{font-size:11px;color:rgba(255,255,255,0.42)}
+.budget-meta{color:rgba(6,182,212,0.85);font-weight:600}
+
+/* Actions */
+.card-actions{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
+.match-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.match-pill.high{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.28);color:#6ee7b7}
+.match-pill.med{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.28);color:#c4b5fd}
+.btn-save{padding:5px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.3);background:transparent;color:rgba(255,255,255,0.5);font-size:11px;cursor:pointer;transition:all 0.2s}
+.btn-save:hover{background:rgba(139,92,246,0.2);color:#c4b5fd;border-color:rgba(139,92,246,0.6)}
+.btn-save.saved{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:#6ee7b7}
+</style>
+
+{% block extra_js %}
+<script>
+function showLoading(){
+  document.getElementById('loading-state').style.display = 'block';
+  document.getElementById('find-btn').textContent = '⏳ Finding destinations…';
+  document.getElementById('find-btn').disabled = true;
+  document.querySelector('.pref-card').style.opacity = '0.6';
+  window.scrollTo({top: document.getElementById('loading-state').offsetTop - 80, behavior:'smooth'});
+}
+</script>
+{% endblock %}
+{% endblock %}
