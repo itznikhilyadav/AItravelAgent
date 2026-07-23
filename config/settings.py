@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from groq import Groq
-from django.conf import settings
 
-client = Groq(api_key=settings.GROQ_API_KEY)
+
+
 # --------------------------------------------------
 # Base Directory
 # --------------------------------------------------
@@ -13,6 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load .env file
 load_dotenv(BASE_DIR / ".env")
 
+# Groq API Key
+# --------------------------------------------------
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # --------------------------------------------------
 # Security
 # --------------------------------------------------
