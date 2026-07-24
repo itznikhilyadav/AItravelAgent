@@ -5,6 +5,21 @@ from django.contrib.auth.decorators import login_required
 import datetime
 
 from .forms import RegisterForm, LoginForm
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+
+def create_superuser(request):
+    User = get_user_model()
+
+    if not User.objects.filter(username="admin").exists():
+        User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="Admin@12345"
+        )
+        return HttpResponse("Superuser created!")
+
+    return HttpResponse("Superuser already exists.")
 
 
 # ===========================
@@ -57,6 +72,9 @@ def user_logout(request):
     logout(request)
     messages.success(request, "You have been logged out successfully.")
     return redirect("home")
+
+
+
 
 
 # ===========================

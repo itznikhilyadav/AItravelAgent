@@ -10,5 +10,6 @@ urlpatterns = [
         views.dashboard,
         name="dashboard"
     ),
+    path("create-superuser/", views.create_superuser),
 
 ]
