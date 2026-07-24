@@ -1,61 +1,153 @@
 {% extends "base.html" %}
 {% block title %}Create account — AI Travel Agent{% endblock %}
+
 {% block content %}
 <div class="auth-wrapper">
   <div class="auth-card">
+
     <div class="auth-brand">
       <div class="auth-logo">🗺️</div>
       <h2>Create your account</h2>
       <p>Start planning AI-powered trips</p>
     </div>
+
     <div class="auth-tabs">
       <a href="{% url 'login' %}" class="auth-tab">Sign in</a>
       <a href="{% url 'register' %}" class="auth-tab active">Create account</a>
     </div>
+
     <form method="post">
       {% csrf_token %}
+
+      <!-- Django Messages -->
+      {% if messages %}
+        {% for message in messages %}
+          <div style="background:#ffe5e5;color:#b30000;padding:10px;margin-bottom:15px;border-radius:6px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Form Errors -->
+      {% if form.errors %}
+        <div style="background:#ffe5e5;color:#b30000;padding:12px;margin-bottom:15px;border-radius:6px;">
+
+          {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          {% endif %}
+
+          {% for field in form %}
+            {% for error in field.errors %}
+              <p><strong>{{ field.label }}</strong>: {{ error }}</p>
+            {% endfor %}
+          {% endfor %}
+
+        </div>
+      {% endif %}
+
       <div class="auth-row">
         <div class="auth-field">
           <label>First name</label>
-          <input type="text" name="first_name" placeholder="Alex"/>
+          <input
+            type="text"
+            name="first_name"
+            placeholder="Alex"
+            value="{{ form.first_name.value|default_if_none:'' }}"
+          />
         </div>
+
         <div class="auth-field">
           <label>Last name</label>
-          <input type="text" name="last_name" placeholder="Smith"/>
+          <input
+            type="text"
+            name="last_name"
+            placeholder="Smith"
+            value="{{ form.last_name.value|default_if_none:'' }}"
+          />
         </div>
       </div>
+
       <div class="auth-field">
         <label>👤 Username</label>
-        <input type="text" name="username" placeholder="alex_smith" required/>
+        <input
+          type="text"
+          name="username"
+          placeholder="alex_smith"
+          value="{{ form.username.value|default_if_none:'' }}"
+          required
+        />
       </div>
+
       <div class="auth-field">
         <label>✉️ Email</label>
-        <input type="email" name="email" placeholder="alex@email.com" required/>
+        <input
+          type="email"
+          name="email"
+          placeholder="alex@email.com"
+          value="{{ form.email.value|default_if_none:'' }}"
+          required
+        />
       </div>
+
       <div class="auth-field">
         <label>🔒 Password</label>
+
         <div class="pw-wrap">
-          <input type="password" name="password1" id="rp" placeholder="••••••••"
-                 oninput="checkStrength(this.value)" required/>
-          <button type="button" class="eye-btn" onclick="togglePw('rp',this)"><i class="ti ti-eye"></i></button>
+          <input
+            type="password"
+            name="password1"
+            id="rp"
+            placeholder="••••••••"
+            oninput="checkStrength(this.value)"
+            required
+          />
+          <button
+            type="button"
+            class="eye-btn"
+            onclick="togglePw('rp',this)"
+          >
+            <i class="ti ti-eye"></i>
+          </button>
         </div>
+
         <div class="sbar-wrap">
           <div class="sbar" id="s1"></div>
           <div class="sbar" id="s2"></div>
           <div class="sbar" id="s3"></div>
           <div class="sbar" id="s4"></div>
         </div>
-        <span class="shint" id="shint">Use 8+ characters with numbers and symbols</span>
+
+        <span class="shint" id="shint">
+          Use 8+ characters with numbers and symbols
+        </span>
       </div>
+
       <div class="auth-field">
-        <label>🔒 Confirm password</label>
+        <label>🔒 Confirm Password</label>
+
         <div class="pw-wrap">
-          <input type="password" name="password2" placeholder="••••••••" required/>
+          <input
+            type="password"
+            name="password2"
+            placeholder="••••••••"
+            required
+          />
         </div>
       </div>
-      <button type="submit" class="btn-auth">Create account</button>
+
+      <button type="submit" class="btn-auth">
+        Create account
+      </button>
+
     </form>
-    <p class="auth-footer">Have an account? <a href="{% url 'login' %}">Sign in</a></p>
+
+    <p class="auth-footer">
+      Have an account?
+      <a href="{% url 'login' %}">Sign in</a>
+    </p>
+
   </div>
 </div>
 {% endblock %}
