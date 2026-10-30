@@ -45,7 +45,7 @@ Rules:
 - Return ONLY the JSON array"""
 
     completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b"
         messages=[
             {"role": "system", "content": "You are a flight search API. Return ONLY valid JSON arrays. No markdown, no explanation."},
             {"role": "user", "content": prompt}
@@ -99,7 +99,7 @@ Rules:
 - Return ONLY the JSON array"""
 
     completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b"
         messages=[
             {"role": "system", "content": "You are a hotel search API. Return ONLY valid JSON arrays. No markdown, no explanation."},
             {"role": "user", "content": prompt}
