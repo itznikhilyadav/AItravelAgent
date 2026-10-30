@@ -187,7 +187,7 @@ def get_ai_response(message: str, history_messages: list = None) -> str:
         messages.append({"role": "user", "content": message})
 
         completion = client.chat.completions.create(
-            model="openai/gpt-oss-120b"
+            model="openai/gpt-oss-120b",
             messages=messages,
             max_tokens=1500,
             temperature=0.7,
