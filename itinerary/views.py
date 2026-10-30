@@ -75,7 +75,7 @@ Rules:
 - Return ONLY the JSON object"""
 
     completion = client.chat.completions.create(
-        model="openai/gpt-oss-120b"
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": "You are a travel planning API. Return ONLY valid JSON objects. No markdown, no explanation, no code blocks."},
             {"role": "user", "content": prompt}
