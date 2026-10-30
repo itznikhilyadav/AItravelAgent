@@ -77,19 +77,39 @@ Rules:
     completion = client.chat.completions.create(
         model="openai/gpt-oss-120b",
         messages=[
-            {"role": "system", "content": "You are a travel planning API. Return ONLY valid JSON objects. No markdown, no explanation, no code blocks."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a travel planning API. "
+                    "Return only a valid JSON object. "
+                    "Do not include markdown or explanations."
+                )
+            },
             {"role": "user", "content": prompt}
         ],
-        max_tokens=4000,
+        max_completion_tokens=4000,
         temperature=0.7,
+        response_format={"type": "json_object"},
+        reasoning_format="hidden",
     )
 
-    response = completion.choices[0].message.content.strip()
-    start = response.find('{')
-    end = response.rfind('}') + 1
-    if start != -1 and end > start:
-        response = response[start:end]
-    return json.loads(response)
+    message = completion.choices[0].message
+    response = message.content
+
+    if not response or not response.strip():
+        raise ValueError(
+            f"Groq returned an empty response. "
+            f"Finish reason: {completion.choices[0].finish_reason}"
+        )
+
+    try:
+        data = json.loads(response)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Groq returned invalid JSON: {response[:300]}"
+        ) from e
+
+    return data
 
 
 @login_required(login_url='/users/login/')
