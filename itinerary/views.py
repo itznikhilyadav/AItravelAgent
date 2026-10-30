@@ -104,9 +104,26 @@ Rules:
 
     try:
         data = json.loads(response)
+
     except json.JSONDecodeError as e:
+        start = max(0, e.pos - 300)
+        end = min(len(response), e.pos + 300)
+
+        error_context = response[start:end]
+
+        print("\n========== ITINERARY JSON ERROR ==========")
+        print("Error:", str(e))
+        print("Line:", e.lineno)
+        print("Column:", e.colno)
+        print("Position:", e.pos)
+        print("Response near error:")
+        print(error_context)
+        print("==========================================\n")
+
         raise ValueError(
-            f"Groq returned invalid JSON: {response[:300]}"
+            f"Invalid JSON at line {e.lineno}, "
+            f"column {e.colno}. "
+            f"Details: {error_context}"
         ) from e
 
     return data
